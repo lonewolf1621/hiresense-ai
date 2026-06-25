@@ -227,19 +227,15 @@ with tab1:
                             if score >= 80:
                                 color = "🟢"
                                 sentiment = "Excellent"
-                                color_code = "#28a745"
                             elif score >= 60:
                                 color = "🟡"
                                 sentiment = "Good"
-                                color_code = "#ffc107"
                             elif score >= 40:
                                 color = "🟠"
                                 sentiment = "Fair"
-                                color_code = "#fd7e14"
                             else:
                                 color = "🔴"
                                 sentiment = "Low"
-                                color_code = "#dc3545"
                             
                             st.metric(f"{color} Overall Match", f"{score}%")
                             st.progress(score / 100, text=sentiment)
@@ -268,11 +264,11 @@ with tab1:
                             if data['matched_skills']:
                                 skill_text = " • ".join(data['matched_skills'])
                                 st.markdown(f"""
-                                <div style='background-color: #d4edda; padding: 15px; border-radius: 8px; border-left: 5px solid #28a745;'>
-                                <b>🎯 {len(data['matched_skills'])} Skills Found:</b><br>
-                                {skill_text}
-                                </div>
-                                """, unsafe_allow_html=True)
+<div style='background-color: #d4edda; padding: 15px; border-radius: 8px; border-left: 5px solid #28a745;'>
+<b>🎯 {len(data['matched_skills'])} Skills Found:</b><br>
+{skill_text}
+</div>
+""", unsafe_allow_html=True)
                             else:
                                 st.info("No skills matched yet")
 
@@ -281,11 +277,11 @@ with tab1:
                             if data['missing_skills']:
                                 skill_text = " • ".join(data['missing_skills'])
                                 st.markdown(f"""
-                                <div style='background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 5px solid #dc3545;'>
-                                <b>📚 {len(data['missing_skills'])} Skills to Learn:</b><br>
-                                {skill_text}
-                                </div>
-                                """, unsafe_allow_html=True)
+<div style='background-color: #f8d7da; padding: 15px; border-radius: 8px; border-left: 5px solid #dc3545;'>
+<b>📚 {len(data['missing_skills'])} Skills to Learn:</b><br>
+{skill_text}
+</div>
+""", unsafe_allow_html=True)
                             else:
                                 st.success("✨ All required skills present!")
 
@@ -330,10 +326,10 @@ with tab1:
 - Duration: {res.get('duration', 'Self-paced')}
 - Rating: {res.get('rating', 'N/A')}
 - [Visit Course]({res.get('url', '#')})
-                                                """)
+""")
                                         else:
                                             st.info(f"No specific resources found for {learning['skill']}")
-                            except:
+                            except Exception as e:
                                 st.info("Learning resources not available at the moment")
 
                         st.markdown("---")
@@ -556,7 +552,7 @@ with tab2:
                         best_job = data['best_match_job']
                         best_score = data['best_match_score']
                         
-                        st.markdown(f"### 🎯 Recommendation")
+                        st.markdown("### 🎯 Recommendation")
                         st.markdown(f"Based on your resume, **Job {best_job}** is the best fit with a match score of **{best_score}%**. This job aligns well with your skills and experience. Focus on learning the missing skills and you will be a strong candidate!")
                     
                     else:
@@ -648,53 +644,53 @@ with tab3:
 # ============================================================================
 with tab4:
     st.markdown("""
-    ## About HireSense AI
-    
-    HireSense AI is your personal job-matching assistant, designed specifically for Indian job seekers.
-    
-    ### 🎯 Our Mission
-    Help job seekers make data-driven career decisions by providing instant insights into resume-job alignment.
-    
-    ### ✨ What Makes Us Different
-    - **Smart Skill Matching:** Recognizes skill variations (REST APIs = REST API)
-    - **Multi-Industry:** Supports IT, Finance, Marketing, Design, HR, and more
-    - **Free & Anonymous:** No signups, no tracking
-    - **Instant Results:** Get insights in seconds
-    - **Compare Jobs:** Find the best fit among multiple opportunities
-    - **Company Insights:** Explore top companies and interview processes
-    - **Learning Resources:** Get recommended courses for missing skills
-    
-    ### 🔧 Technology
-    - **Backend:** FastAPI + Python
-    - **Frontend:** Streamlit
-    - **Deployment:** Render + Streamlit Cloud
-    - **Skill Database:** 40+ common tech skills
-    - **Company Database:** 30+ top companies across 5 industries
-    
-    ### 📊 How Matching Works
-    1. **Skill Extraction:** Identifies technical skills from text
-    2. **Normalization:** Handles variations (microservices = microservice)
-    3. **Matching:** Compares resume skills with job requirements
-    4. **Scoring:** Calculates match percentage
-    5. **Suggestions:** Recommends improvements
-    
-    ### 🚀 Live Demo
-    **App:** https://hiresense-ai-vishal.streamlit.app  
-    **GitHub:** https://github.com/lonewolf1621/hiresense-ai  
-    **API:** https://hiresense-ai-3k4d.onrender.com
-    
-    ### 💬 Feedback
-    Found a bug? Have a suggestion? Create an issue on GitHub!
-    
-    ---
-    
-    **Made with ❤️ for Job Seekers Worldwide**
-    """)
+## About HireSense AI
+
+HireSense AI is your personal job-matching assistant, designed for job seekers worldwide.
+
+### 🎯 Our Mission
+Help job seekers make data-driven career decisions by providing instant insights into resume-job alignment.
+
+### ✨ What Makes Us Different
+- **Smart Skill Matching:** Recognizes skill variations (REST APIs = REST API)
+- **Multi-Industry:** Supports IT, Finance, Marketing, Design, HR, and more
+- **Free & Anonymous:** No signups, no tracking
+- **Instant Results:** Get insights in seconds
+- **Compare Jobs:** Find the best fit among multiple opportunities
+- **Company Insights:** Explore top companies and interview processes
+- **Learning Resources:** Get recommended courses for missing skills
+
+### 🔧 Technology
+- **Backend:** FastAPI + Python
+- **Frontend:** Streamlit
+- **Deployment:** Render + Streamlit Cloud
+- **Skill Database:** 40+ common tech skills
+- **Company Database:** 30+ top companies across 5 industries
+
+### 📊 How Matching Works
+1. **Skill Extraction:** Identifies technical skills from text
+2. **Normalization:** Handles variations (microservices = microservice)
+3. **Matching:** Compares resume skills with job requirements
+4. **Scoring:** Calculates match percentage
+5. **Suggestions:** Recommends improvements
+
+### 🚀 Live Demo
+**App:** https://hiresense-ai-vishal.streamlit.app  
+**GitHub:** https://github.com/lonewolf1621/hiresense-ai  
+**API:** https://hiresense-ai-3k4d.onrender.com
+
+### 💬 Feedback
+Found a bug? Have a suggestion? Create an issue on GitHub!
+
+---
+
+**Made with ❤️ for Job Seekers Worldwide**
+""")
 
 # Footer
 st.markdown("---")
 st.markdown("""
-    <div style='text-align: center; color: gray;'>
-    <small>HireSense AI | Smart Resume-Job Matching | v1.3 | Multi-Industry Support Now Available!</small>
-    </div>
+<div style='text-align: center; color: gray;'>
+<small>HireSense AI | Smart Resume-Job Matching | v1.3 | Multi-Industry Support Now Available!</small>
+</div>
 """, unsafe_allow_html=True)
