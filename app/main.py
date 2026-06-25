@@ -1,15 +1,15 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from app.main_pipeline import run_pipeline
+import json
 
 app = FastAPI(
     title="HireSense AI API",
-    description="Smart Job-Resume Matcher for Indian Job Seekers",
+    description="Smart Job-Resume Matcher",
     version="1.0.0"
 )
 
-# Enable CORS for Streamlit
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,20 +19,11 @@ app.add_middleware(
 )
 
 
-class AnalysisRequest(BaseModel):
-    resume: str
-    job_description: str
-
-
 @app.get("/")
 def root():
     return {
         "message": "🚀 HireSense AI is running",
-        "version": "1.0.0",
-        "endpoints": {
-            "analyze": "POST /analyze",
-            "health": "GET /health"
-        }
+        "version": "1.0.0"
     }
 
 
@@ -42,12 +33,15 @@ def health():
 
 
 @app.post("/analyze")
-def analyze(data: AnalysisRequest):
+async def analyze(request: dict):
     try:
-        if not data.resume.strip() or not data.job_description.strip():
-            raise HTTPException(status_code=400, detail="Resume and job description required")
+        resume = request.get("resume", "")
+        job_description = request.get("job_description", "")
         
-        result = run_pipeline(data.resume, data.job_description)
+        if not resume or not job_description:
+            raise HTTPException(status_code=400, detail="Resume and JD required")
+        
+        result = run_pipeline(resume, job_description)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
