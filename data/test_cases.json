@@ -1,0 +1,12 @@
+[
+  {
+    "resume": "Machine learning engineer with Python and NLP experience",
+    "jd": "Looking for ML engineer with Python and NLP",
+    "expected_skills": ["python", "nlp"]
+  },
+  {
+    "resume": "Worked with TensorFlow and Docker",
+    "jd": "Need deep learning and TensorFlow experience",
+    "expected_skills": ["tensorflow", "deep learning"]
+  }
+]

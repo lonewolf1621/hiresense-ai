@@ -1,0 +1,1 @@
+We are looking for a machine learning engineer with experience in Python, NLP, and Docker. Knowledge of deep learning frameworks is a plus.

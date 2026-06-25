@@ -1,0 +1,1 @@
+I am a machine learning engineer with experience in Python, TensorFlow, and building predictive models. I have worked on NLP projects and deployed models using Docker.
