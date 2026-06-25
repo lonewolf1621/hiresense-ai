@@ -4,16 +4,21 @@
     "sql", "mongodb", "postgresql", "mysql", "redis",
     "react", "angular", "vue", "node.js", "django", "fastapi",
     "aws", "azure", "gcp", "docker", "kubernetes",
-    "git", "linux", "rest api", "graphql", "microservices",
+    "git", "linux", "rest api", "graphql", "microservice",
     "machine learning", "deep learning", "nlp", "tensorflow", "pytorch",
-    "agile", "scrum", "jira", "ci/cd", "jenkins", "gitlab"
+    "agile", "scrum", "jira", "ci/cd", "jenkins", "gitlab",
+    "html", "css", "typescript", "kotlin", "swift",
+    "elasticsearch", "rabbitmq", "kafka", "spark",
+    "terraform", "ansible", "nginx", "apache"
   ],
   "role_keywords": {
-    "backend developer": ["fastapi", "api", "sql", "docker", "python"],
-    "frontend developer": ["react", "javascript", "css", "html", "angular"],
-    "full stack developer": ["python", "javascript", "react", "sql", "api"],
-    "data engineer": ["sql", "python", "spark", "hadoop", "etl"],
-    "ml engineer": ["machine learning", "python", "tensorflow", "pytorch"],
-    "devops engineer": ["docker", "kubernetes", "jenkins", "aws", "linux"]
+    "backend developer": ["fastapi", "rest api", "sql", "docker", "python", "nodejs"],
+    "frontend developer": ["react", "javascript", "css", "html", "angular", "vue"],
+    "full stack developer": ["python", "javascript", "react", "sql", "rest api", "nodejs"],
+    "data engineer": ["sql", "python", "spark", "hadoop", "etl", "kafka"],
+    "ml engineer": ["machine learning", "python", "tensorflow", "pytorch", "deep learning"],
+    "devops engineer": ["docker", "kubernetes", "jenkins", "aws", "linux", "terraform"],
+    "cloud engineer": ["aws", "azure", "gcp", "kubernetes", "terraform"],
+    "database admin": ["sql", "postgresql", "mongodb", "mysql", "redis"]
   }
 }

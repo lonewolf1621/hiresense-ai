@@ -2,26 +2,26 @@ import re
 from io import BytesIO
 
 try:
-    import pdfplumber
-except ImportError:
-    pdfplumber = None
+    import PyPDF2
+except:
+    PyPDF2 = None
 
 try:
     from docx import Document
-except ImportError:
+except:
     Document = None
 
 
 def parse_pdf(file_bytes):
     """Extract text from PDF"""
-    if not pdfplumber:
+    if not PyPDF2:
         return ""
     
     try:
-        with pdfplumber.open(BytesIO(file_bytes)) as pdf:
-            text = ""
-            for page in pdf.pages:
-                text += page.extract_text() + "\n"
+        pdf_reader = PyPDF2.PdfReader(BytesIO(file_bytes))
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text() + "\n"
         return text
     except Exception as e:
         print(f"PDF parsing error: {e}")
@@ -50,17 +50,20 @@ def extract_email(text):
 
 
 def extract_phone(text):
-    """Extract phone number from resume (Indian format)"""
+    """Extract phone number (Indian format)"""
     pattern = r"\+?91?\s?[6-9]\d{9}"
     match = re.search(pattern, text)
     return match.group(0) if match else None
 
 
-def parse_resume(file_content, file_type):
+def parse_resume(file_bytes, file_type):
     """Parse resume based on file type"""
-    if file_type == "pdf":
-        return parse_pdf(file_content)
-    elif file_type == "docx":
-        return parse_docx(file_content)
+    if file_type.lower() == "pdf":
+        return parse_pdf(file_bytes)
+    elif file_type.lower() in ["docx", "doc"]:
+        return parse_docx(file_bytes)
     else:
-        return file_content.decode("utf-8")
+        try:
+            return file_bytes.decode("utf-8")
+        except:
+            return ""

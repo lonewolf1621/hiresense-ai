@@ -1,0 +1,240 @@
+{
+  "learning_resources": {
+    "python": {
+      "skill": "Python",
+      "difficulty": "Beginner",
+      "resources": [
+        {
+          "name": "Python for Everybody",
+          "type": "Free Course",
+          "platform": "YouTube/Coursera",
+          "url": "https://www.coursera.org/learn/python",
+          "duration": "8 weeks",
+          "rating": "4.8/5"
+        },
+        {
+          "name": "Complete Python Bootcamp",
+          "type": "Paid Course",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/course/complete-python-bootcamp/",
+          "duration": "22 hours",
+          "rating": "4.6/5"
+        },
+        {
+          "name": "Python Official Docs",
+          "type": "Documentation",
+          "platform": "python.org",
+          "url": "https://docs.python.org/3/",
+          "duration": "Self-paced",
+          "rating": "5/5"
+        }
+      ]
+    },
+    "fastapi": {
+      "skill": "FastAPI",
+      "difficulty": "Intermediate",
+      "resources": [
+        {
+          "name": "FastAPI Official Tutorial",
+          "type": "Free Course",
+          "platform": "FastAPI.tiangolo.com",
+          "url": "https://fastapi.tiangolo.com/",
+          "duration": "Self-paced",
+          "rating": "5/5"
+        },
+        {
+          "name": "Build APIs with FastAPI",
+          "type": "Paid Course",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/course/fastapi-course/",
+          "duration": "15 hours",
+          "rating": "4.7/5"
+        }
+      ]
+    },
+    "react": {
+      "skill": "React",
+      "difficulty": "Intermediate",
+      "resources": [
+        {
+          "name": "React Official Tutorial",
+          "type": "Free Course",
+          "platform": "react.dev",
+          "url": "https://react.dev/learn",
+          "duration": "Self-paced",
+          "rating": "5/5"
+        },
+        {
+          "name": "Complete React Course",
+          "type": "Paid Course",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/course/react-the-complete-guide/",
+          "duration": "40+ hours",
+          "rating": "4.8/5"
+        }
+      ]
+    },
+    "docker": {
+      "skill": "Docker",
+      "difficulty": "Intermediate",
+      "resources": [
+        {
+          "name": "Docker Official Documentation",
+          "type": "Free Course",
+          "platform": "docker.com",
+          "url": "https://docs.docker.com/get-started/",
+          "duration": "Self-paced",
+          "rating": "5/5"
+        },
+        {
+          "name": "Docker & Kubernetes Complete Guide",
+          "type": "Paid Course",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/course/docker-and-kubernetes-the-complete-guide/",
+          "duration": "21 hours",
+          "rating": "4.7/5"
+        }
+      ]
+    },
+    "kubernetes": {
+      "skill": "Kubernetes",
+      "difficulty": "Advanced",
+      "resources": [
+        {
+          "name": "Kubernetes Official Docs",
+          "type": "Free Course",
+          "platform": "kubernetes.io",
+          "url": "https://kubernetes.io/docs/",
+          "duration": "Self-paced",
+          "rating": "5/5"
+        },
+        {
+          "name": "Kubernetes Complete Guide",
+          "type": "Paid Course",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/course/docker-and-kubernetes-the-complete-guide/",
+          "duration": "21 hours",
+          "rating": "4.7/5"
+        }
+      ]
+    },
+    "sql": {
+      "skill": "SQL",
+      "difficulty": "Beginner",
+      "resources": [
+        {
+          "name": "SQL Tutorial",
+          "type": "Free Course",
+          "platform": "W3Schools",
+          "url": "https://www.w3schools.com/sql/",
+          "duration": "Self-paced",
+          "rating": "4.5/5"
+        },
+        {
+          "name": "Complete SQL Bootcamp",
+          "type": "Paid Course",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/course/the-complete-sql-bootcamp/",
+          "duration": "13 hours",
+          "rating": "4.6/5"
+        }
+      ]
+    },
+    "aws": {
+      "skill": "AWS",
+      "difficulty": "Intermediate",
+      "resources": [
+        {
+          "name": "AWS Certified Solutions Architect",
+          "type": "Certification",
+          "platform": "AWS/Pluralsight",
+          "url": "https://aws.amazon.com/certification/",
+          "duration": "300+ hours",
+          "rating": "4.8/5"
+        },
+        {
+          "name": "AWS for Beginners",
+          "type": "Paid Course",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/course/aws-certified-solutions-architect-associate/",
+          "duration": "28 hours",
+          "rating": "4.7/5"
+        }
+      ]
+    },
+    "machine learning": {
+      "skill": "Machine Learning",
+      "difficulty": "Advanced",
+      "resources": [
+        {
+          "name": "Machine Learning by Andrew Ng",
+          "type": "Free Course",
+          "platform": "Coursera",
+          "url": "https://www.coursera.org/learn/machine-learning",
+          "duration": "12 weeks",
+          "rating": "4.9/5"
+        },
+        {
+          "name": "Complete ML Bootcamp",
+          "type": "Paid Course",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/course/complete-machine-learning-and-data-science-zero-to-mastery/",
+          "duration": "40+ hours",
+          "rating": "4.8/5"
+        }
+      ]
+    },
+    "rest api": {
+      "skill": "REST API",
+      "difficulty": "Intermediate",
+      "resources": [
+        {
+          "name": "REST API Fundamentals",
+          "type": "Free Course",
+          "platform": "Pluralsight",
+          "url": "https://www.pluralsight.com/courses/rest-fundamentals",
+          "duration": "2 hours",
+          "rating": "4.5/5"
+        },
+        {
+          "name": "Build REST APIs",
+          "type": "Paid Course",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/course/build-rest-apis-with-flask/",
+          "duration": "10 hours",
+          "rating": "4.6/5"
+        }
+      ]
+    },
+    "default": {
+      "skill": "Technical Skill",
+      "difficulty": "Varies",
+      "resources": [
+        {
+          "name": "Udemy",
+          "type": "Paid Courses",
+          "platform": "Udemy",
+          "url": "https://www.udemy.com/",
+          "duration": "Varies",
+          "rating": "4.6/5"
+        },
+        {
+          "name": "Coursera",
+          "type": "Free & Paid Courses",
+          "platform": "Coursera",
+          "url": "https://www.coursera.org/",
+          "duration": "Varies",
+          "rating": "4.7/5"
+        },
+        {
+          "name": "YouTube",
+          "type": "Free Tutorials",
+          "platform": "YouTube",
+          "url": "https://www.youtube.com/",
+          "duration": "Varies",
+          "rating": "4.5/5"
+        }
+      ]
+    }
+  }
+}

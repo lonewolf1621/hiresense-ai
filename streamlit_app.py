@@ -307,6 +307,38 @@ with tab1:
                             st.info(f"{i}. {suggestion}")
 
                         st.markdown("---")
+ # Learning Resources
+                        if data['missing_skills']:
+                            st.markdown("### 📚 Learning Resources")
+                            st.markdown("Here are some recommended resources to learn the missing skills:")
+                            
+                            try:
+                                from app.services.learning_service import get_learning_path
+                                learning_path = get_learning_path(data['missing_skills'])
+                                
+                                for learning in learning_path:
+                                    with st.expander(f"📖 Learn **{learning['skill'].upper()}** ({learning['difficulty']})"):
+                                        resources = learning.get('resources', [])
+                                        
+                                        if resources:
+                                            for i, res in enumerate(resources, 1):
+                                                st.markdown(f"""
+                                                **{i}. {res.get('name', 'Course')}**
+                                                - Type: {res.get('type', 'N/A')}
+                                                - Platform: {res.get('platform', 'N/A')}
+                                                - Duration: {res.get('duration', 'Self-paced')}
+                                                - Rating: {res.get('rating', 'N/A')}
+                                                - [Visit Course]({res.get('url', '#')})
+                                                """)
+                                        else:
+                                            st.info(f"No specific resources found for {learning['skill']}")
+                            except:
+                                st.info("Learning resources not available at the moment")
+
+                        st.markdown("---")
+
+                        # Download Results
+                        insights_text = f"""HireSense AI - Match Analysis Report
 
                         # Download Results
                         insights_text = f"""HireSense AI - Match Analysis Report

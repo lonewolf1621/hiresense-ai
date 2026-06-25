@@ -45,3 +45,35 @@ async def analyze(request: dict):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+from app.services.comparison_service import compare_resume_with_jobs
+
+@app.post("/compare")
+async def compare(request: dict):
+    """
+    Compare resume against multiple job descriptions.
+    
+    Request format:
+    {
+        "resume": "...",
+        "jobs": [
+            "Job Description 1",
+            "Job Description 2",
+            "Job Description 3"
+        ]
+    }
+    """
+    try:
+        resume = request.get("resume", "")
+        jobs = request.get("jobs", [])
+        
+        if not resume or not jobs:
+            raise HTTPException(status_code=400, detail="Resume and jobs required")
+        
+        if len(jobs) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 jobs allowed for comparison")
+        
+        result = compare_resume_with_jobs(resume, jobs)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
