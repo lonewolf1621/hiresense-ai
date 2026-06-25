@@ -129,7 +129,7 @@ with st.sidebar:
     st.markdown("💡 Include all skills & experience  \n💡 Use complete job descriptions  \n💡 Better matching = Better insights")
 
 # Main tabs
-tab1, tab2, tab3 = st.tabs(["📊 Single Analyzer", "🔄 Compare Jobs", "ℹ️ About"])
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Single Analyzer", "🔄 Compare Jobs", "🏢 Companies", "ℹ️ About"])
 
 # ============================================================================
 # TAB 1: SINGLE ANALYZER
@@ -307,7 +307,8 @@ with tab1:
                             st.info(f"{i}. {suggestion}")
 
                         st.markdown("---")
- # Learning Resources
+
+                        # Learning Resources
                         if data['missing_skills']:
                             st.markdown("### 📚 Learning Resources")
                             st.markdown("Here are some recommended resources to learn the missing skills:")
@@ -323,12 +324,12 @@ with tab1:
                                         if resources:
                                             for i, res in enumerate(resources, 1):
                                                 st.markdown(f"""
-                                                **{i}. {res.get('name', 'Course')}**
-                                                - Type: {res.get('type', 'N/A')}
-                                                - Platform: {res.get('platform', 'N/A')}
-                                                - Duration: {res.get('duration', 'Self-paced')}
-                                                - Rating: {res.get('rating', 'N/A')}
-                                                - [Visit Course]({res.get('url', '#')})
+**{i}. {res.get('name', 'Course')}**
+- Type: {res.get('type', 'N/A')}
+- Platform: {res.get('platform', 'N/A')}
+- Duration: {res.get('duration', 'Self-paced')}
+- Rating: {res.get('rating', 'N/A')}
+- [Visit Course]({res.get('url', '#')})
                                                 """)
                                         else:
                                             st.info(f"No specific resources found for {learning['skill']}")
@@ -336,9 +337,6 @@ with tab1:
                                 st.info("Learning resources not available at the moment")
 
                         st.markdown("---")
-
-                        # Download Results
-                        insights_text = f"""HireSense AI - Match Analysis Report
 
                         # Download Results
                         insights_text = f"""HireSense AI - Match Analysis Report
@@ -558,14 +556,8 @@ with tab2:
                         best_job = data['best_match_job']
                         best_score = data['best_match_score']
                         
-                        st.markdown(f"""
-                        ### 🎯 Recommendation
-                        
-                        Based on your resume, **Job {best_job}** is the best fit with a match score of **{best_score}%**.
-                        
-                        This job aligns well with your skills and experience. Focus on learning the missing skills
-                        and you'll be a strong candidate!
-                        """)
+                        st.markdown(f"### 🎯 Recommendation")
+                        st.markdown(f"Based on your resume, **Job {best_job}** is the best fit with a match score of **{best_score}%**. This job aligns well with your skills and experience. Focus on learning the missing skills and you will be a strong candidate!")
                     
                     else:
                         st.error(f"❌ API Error: {response.status_code}")
@@ -574,9 +566,87 @@ with tab2:
                     st.error(f"❌ Error: {str(e)}")
 
 # ============================================================================
-# TAB 3: ABOUT
+# TAB 3: COMPANY DATABASE
 # ============================================================================
 with tab3:
+    st.markdown("### 🏢 Company Database & Insights")
+    st.markdown("Explore top companies, their tech stack, interview process, and salary ranges")
+    
+    st.markdown("---")
+    
+    # Industry selector
+    try:
+        from app.services.company_service import get_industries, get_companies_by_industry, get_company_insights
+        
+        industries = get_industries()
+        industry_names = [ind["name"] for ind in industries]
+        industry_keys = [ind["key"] for ind in industries]
+        
+        selected_industry_name = st.selectbox(
+            "Select Industry:",
+            industry_names,
+            key="industry_select"
+        )
+        
+        selected_industry_key = industry_keys[industry_names.index(selected_industry_name)]
+        
+        st.markdown("---")
+        
+        # Show industry insights
+        insights = get_company_insights(selected_industry_key)
+        
+        if insights:
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("📊 Total Companies", insights.get("total_companies", 0))
+            
+            with col2:
+                st.metric("💰 Avg Salary Range", insights.get("average_salary", "N/A"))
+            
+            with col3:
+                st.metric("🔧 Common Tech Skills", len(insights.get("common_tech_stack", [])))
+        
+        st.markdown("---")
+        
+        # Get companies
+        industry_data = get_companies_by_industry(selected_industry_key)
+        companies = industry_data.get("companies", [])
+        
+        st.markdown(f"### Companies in {selected_industry_name}")
+        
+        for company in companies:
+            with st.expander(f"🏢 **{company.get('name')}** | {company.get('salary_range')}"):
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown(f"**Type:** {company.get('type', 'N/A')}")
+                    st.markdown(f"**HQ:** {company.get('headquarters', 'N/A')}")
+                    st.markdown(f"**Founded:** {company.get('founded', 'N/A')}")
+                    st.markdown(f"**Difficulty:** {company.get('difficulty', 'N/A')}")
+                
+                with col2:
+                    st.markdown(f"**Salary Range:** {company.get('salary_range', 'N/A')}")
+                    st.markdown(f"**Tech Stack:** {', '.join(company.get('tech_stack', []))}")
+                
+                st.markdown("**Hiring Roles:**")
+                st.markdown(", ".join(company.get("hiring_roles", [])))
+                
+                st.markdown("**Interview Process:**")
+                st.info(company.get("interview_process", "N/A"))
+                
+                st.markdown("**Popular Interview Questions:**")
+                for q in company.get("popular_questions", []):
+                    st.markdown(f"- {q}")
+    
+    except Exception as e:
+        st.error(f"Error loading company database: {str(e)}")
+
+# ============================================================================
+# TAB 4: ABOUT
+# ============================================================================
+with tab4:
     st.markdown("""
     ## About HireSense AI
     
@@ -587,16 +657,19 @@ with tab3:
     
     ### ✨ What Makes Us Different
     - **Smart Skill Matching:** Recognizes skill variations (REST APIs = REST API)
-    - **India-Focused:** Understands Indian tech job market
+    - **Multi-Industry:** Supports IT, Finance, Marketing, Design, HR, and more
     - **Free & Anonymous:** No signups, no tracking
     - **Instant Results:** Get insights in seconds
     - **Compare Jobs:** Find the best fit among multiple opportunities
+    - **Company Insights:** Explore top companies and interview processes
+    - **Learning Resources:** Get recommended courses for missing skills
     
     ### 🔧 Technology
     - **Backend:** FastAPI + Python
     - **Frontend:** Streamlit
     - **Deployment:** Render + Streamlit Cloud
     - **Skill Database:** 40+ common tech skills
+    - **Company Database:** 30+ top companies across 5 industries
     
     ### 📊 How Matching Works
     1. **Skill Extraction:** Identifies technical skills from text
@@ -615,13 +688,13 @@ with tab3:
     
     ---
     
-    **Made with ❤️ for Indian Job Seekers**
+    **Made with ❤️ for Job Seekers Worldwide**
     """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
     <div style='text-align: center; color: gray;'>
-    <small>HireSense AI | Smart Resume-Job Matching | v1.2 | Multiple Job Comparison Now Available!</small>
+    <small>HireSense AI | Smart Resume-Job Matching | v1.3 | Multi-Industry Support Now Available!</small>
     </div>
 """, unsafe_allow_html=True)
