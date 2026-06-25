@@ -1,0 +1,298 @@
+{
+  "industries": {
+    "IT": {
+      "industry_name": "Information Technology",
+      "description": "Software, Cloud, DevOps, Data Science",
+      "companies": [
+        {
+          "name": "TCS",
+          "type": "IT Services",
+          "headquarters": "Bangalore, India",
+          "founded": 1968,
+          "tech_stack": ["Java", "Python", "AWS", "Azure"],
+          "salary_range": "₹8-30 LPA",
+          "interview_process": "Written Test → Technical Round → HR Round",
+          "hiring_roles": ["Backend Developer", "Frontend Developer", "Data Engineer", "DevOps Engineer"],
+          "popular_questions": ["Tell me about yourself", "Your biggest project", "Explain OOP concepts"],
+          "difficulty": "Medium"
+        },
+        {
+          "name": "Infosys",
+          "type": "IT Services",
+          "headquarters": "Bangalore, India",
+          "founded": 1981,
+          "tech_stack": ["Java", "C++", "Python", "AWS", "GCP"],
+          "salary_range": "₹7-28 LPA",
+          "interview_process": "Aptitude Test → Technical Interview → HR Interview",
+          "hiring_roles": ["Software Engineer", "Systems Engineer", "Solutions Architect"],
+          "popular_questions": ["Why Infosys?", "Problem solving approach", "Data structures"],
+          "difficulty": "Medium"
+        },
+        {
+          "name": "Wipro",
+          "type": "IT Services",
+          "headquarters": "Bangalore, India",
+          "founded": 1980,
+          "tech_stack": ["Java", "Python", "React", "AWS"],
+          "salary_range": "₹6-26 LPA",
+          "interview_process": "Online Test → Technical Round → HR Round",
+          "hiring_roles": ["Engineer", "Associate", "Senior Engineer"],
+          "popular_questions": ["Strengths & weaknesses", "Technical fundamentals", "Projects"],
+          "difficulty": "Easy-Medium"
+        },
+        {
+          "name": "HCL Technologies",
+          "type": "IT Services",
+          "headquarters": "Noida, India",
+          "founded": 1976,
+          "tech_stack": ["Java", "Python", "Node.js", "AWS"],
+          "salary_range": "₹6-25 LPA",
+          "interview_process": "Written Exam → Technical Interview → HR Round",
+          "hiring_roles": ["Software Developer", "Network Engineer", "Data Analyst"],
+          "popular_questions": ["Career goals", "Problem solving", "Technical skills"],
+          "difficulty": "Easy-Medium"
+        },
+        {
+          "name": "Tech Mahindra",
+          "type": "IT Services",
+          "headquarters": "Pune, India",
+          "founded": 1986,
+          "tech_stack": ["Java", "Python", "AWS", "Azure"],
+          "salary_range": "₹6-24 LPA",
+          "interview_process": "Online Assessment → Technical Round → HR Round",
+          "hiring_roles": ["Software Engineer", "QA Engineer", "Cloud Engineer"],
+          "popular_questions": ["Projects experience", "Technical concepts", "Why Tech Mahindra"],
+          "difficulty": "Easy"
+        },
+        {
+          "name": "Accenture",
+          "type": "IT Consulting",
+          "headquarters": "Bangalore, India",
+          "founded": 1989,
+          "tech_stack": ["Java", "Python", "Cloud", "AI/ML"],
+          "salary_range": "₹8-32 LPA",
+          "interview_process": "Online Test → Technical Round → Manager Round → HR Round",
+          "hiring_roles": ["Developer", "Analyst", "Architect"],
+          "popular_questions": ["Leadership examples", "Problem-solving", "Technical depth"],
+          "difficulty": "Medium-Hard"
+        },
+        {
+          "name": "Google",
+          "type": "Product Company",
+          "headquarters": "Mountain View, USA (India: Bangalore)",
+          "founded": 1998,
+          "tech_stack": ["Python", "Java", "C++", "Go", "Kotlin"],
+          "salary_range": "₹30-80 LPA",
+          "interview_process": "Phone Screen → Technical Rounds (2-3) → System Design → HR Round",
+          "hiring_roles": ["Software Engineer", "Senior Engineer", "Staff Engineer"],
+          "popular_questions": ["Algorithm design", "System design", "Behavioral questions"],
+          "difficulty": "Hard"
+        },
+        {
+          "name": "Amazon",
+          "type": "Product Company",
+          "headquarters": "Seattle, USA (India: Bangalore)",
+          "founded": 1994,
+          "tech_stack": ["Java", "Python", "Node.js", "AWS"],
+          "salary_range": "₹25-70 LPA",
+          "interview_process": "Phone Screen → Technical Rounds → Bar Raiser Round → HR Round",
+          "hiring_roles": ["SDE-1", "SDE-2", "Senior Engineer"],
+          "popular_questions": ["Behavioral (STAR)", "Data structures", "System design"],
+          "difficulty": "Hard"
+        },
+        {
+          "name": "Microsoft",
+          "type": "Product Company",
+          "headquarters": "Redmond, USA (India: Bangalore)",
+          "founded": 1975,
+          "tech_stack": ["C#", "Python", "JavaScript", "Azure"],
+          "salary_range": "₹28-75 LPA",
+          "interview_process": "Phone Screen → Technical Rounds (2) → HR Round",
+          "hiring_roles": ["Software Engineer", "Senior Engineer"],
+          "popular_questions": ["Coding problems", "Design patterns", "Behavioral"],
+          "difficulty": "Hard"
+        },
+        {
+          "name": "Flipkart",
+          "type": "Product Company (Startup)",
+          "headquarters": "Bangalore, India",
+          "founded": 2007,
+          "tech_stack": ["Java", "Python", "Node.js", "React"],
+          "salary_range": "₹20-60 LPA",
+          "interview_process": "Phone Screen → Technical Rounds (2-3) → Manager Round → HR",
+          "hiring_roles": ["Backend Engineer", "Frontend Engineer", "Full Stack Engineer"],
+          "popular_questions": ["Real-world problems", "Scalability", "Code quality"],
+          "difficulty": "Medium-Hard"
+        }
+      ]
+    },
+    "Finance": {
+      "industry_name": "Finance & Banking",
+      "description": "Investment Banking, Asset Management, Insurance",
+      "companies": [
+        {
+          "name": "Goldman Sachs",
+          "type": "Investment Banking",
+          "headquarters": "New York, USA (India: Bangalore)",
+          "founded": 1869,
+          "tech_stack": ["C++", "Python", "Excel", "SQL"],
+          "salary_range": "₹40-100+ LPA",
+          "interview_process": "Superday → Technical Rounds → Behavioral → HR",
+          "hiring_roles": ["Analyst", "Associate", "Vice President"],
+          "popular_questions": ["Financial analysis", "Market knowledge", "Excel skills"],
+          "difficulty": "Hard"
+        },
+        {
+          "name": "JP Morgan Chase",
+          "type": "Investment Banking",
+          "headquarters": "New York, USA (India: Mumbai)",
+          "founded": 1799,
+          "tech_stack": ["Java", "Python", "SQL", "Bloomberg"],
+          "salary_range": "₹35-90 LPA",
+          "interview_process": "Phone Screen → Technical → Superday → HR",
+          "hiring_roles": ["Analyst", "Associate", "Manager"],
+          "popular_questions": ["Deal analysis", "Market trends", "Technical skills"],
+          "difficulty": "Hard"
+        },
+        {
+          "name": "HDFC Bank",
+          "type": "Commercial Banking",
+          "headquarters": "Mumbai, India",
+          "founded": 1994,
+          "tech_stack": ["Java", "C#", "SQL", "Python"],
+          "salary_range": "₹12-40 LPA",
+          "interview_process": "Written Test → Group Discussion → Personal Interview",
+          "hiring_roles": ["Probationary Officer", "Software Engineer", "Risk Manager"],
+          "popular_questions": ["Banking domain knowledge", "Problem solving", "Leadership"],
+          "difficulty": "Medium"
+        },
+        {
+          "name": "ICICI Bank",
+          "type": "Commercial Banking",
+          "headquarters": "Mumbai, India",
+          "founded": 1994,
+          "tech_stack": ["Java", "Python", "Oracle", "SQL"],
+          "salary_range": "₹11-38 LPA",
+          "interview_process": "Online Test → Interview → HR Round",
+          "hiring_roles": ["Management Trainee", "Technology Officer"],
+          "popular_questions": ["Banking concepts", "Technical depth", "Career goals"],
+          "difficulty": "Medium"
+        }
+      ]
+    },
+    "Marketing": {
+      "industry_name": "Marketing & Advertising",
+      "description": "Digital Marketing, Brand Management, Content",
+      "companies": [
+        {
+          "name": "HubSpot",
+          "type": "MarTech",
+          "headquarters": "Cambridge, USA (India: Remote/Bangalore)",
+          "founded": 2006,
+          "tech_stack": ["HubSpot CRM", "Google Analytics", "SEO Tools"],
+          "salary_range": "₹15-50 LPA",
+          "interview_process": "Phone Screen → Technical → Culture Interview → HR",
+          "hiring_roles": ["Marketing Manager", "Content Specialist", "Growth Marketer"],
+          "popular_questions": ["Marketing strategy", "Analytics", "Campaign planning"],
+          "difficulty": "Medium"
+        },
+        {
+          "name": "Unilever",
+          "type": "FMCG",
+          "headquarters": "London, UK (India: Mumbai)",
+          "founded": 1930,
+          "tech_stack": ["Salesforce", "Google Analytics", "Adobe Marketing Cloud"],
+          "salary_range": "₹12-45 LPA",
+          "interview_process": "Written Test → Group Discussion → Interview",
+          "hiring_roles": ["Brand Manager", "Marketing Manager", "Digital Marketing"],
+          "popular_questions": ["Brand strategy", "Consumer insights", "Leadership"],
+          "difficulty": "Medium-Hard"
+        },
+        {
+          "name": "Nestlé",
+          "type": "FMCG",
+          "headquarters": "Vevey, Switzerland (India: Bangalore)",
+          "founded": 1866,
+          "tech_stack": ["Salesforce", "Analytics Tools", "Content Management"],
+          "salary_range": "₹11-42 LPA",
+          "interview_process": "Online Assessment → Interview → HR Round",
+          "hiring_roles": ["Product Manager", "Marketing Trainee"],
+          "popular_questions": ["Product management", "Market analysis", "Strategy"],
+          "difficulty": "Medium"
+        }
+      ]
+    },
+    "Design": {
+      "industry_name": "Design & UX",
+      "description": "UI/UX Design, Product Design, Graphic Design",
+      "companies": [
+        {
+          "name": "Figma",
+          "type": "Design Tool Company",
+          "headquarters": "San Francisco, USA",
+          "founded": 2012,
+          "tech_stack": ["Figma", "Prototyping", "Design Systems"],
+          "salary_range": "₹25-70 LPA",
+          "interview_process": "Design Challenge → Technical Round → Culture Round",
+          "hiring_roles": ["Product Designer", "UX Designer", "Design Lead"],
+          "popular_questions": ["Design process", "Problem solving", "Design thinking"],
+          "difficulty": "Hard"
+        },
+        {
+          "name": "Google Design",
+          "type": "Product Company",
+          "headquarters": "Mountain View, USA (India: Bangalore)",
+          "founded": 1998,
+          "tech_stack": ["Figma", "Sketch", "Adobe XD"],
+          "salary_range": "₹30-80 LPA",
+          "interview_process": "Portfolio Review → Design Challenge → Team Interviews",
+          "hiring_roles": ["UX Designer", "Interaction Designer", "Design Lead"],
+          "popular_questions": ["Design rationale", "User research", "Accessibility"],
+          "difficulty": "Hard"
+        },
+        {
+          "name": "Adobe",
+          "type": "Software Company",
+          "headquarters": "San Jose, USA (India: Bangalore)",
+          "founded": 1982,
+          "tech_stack": ["Adobe Suite", "Figma", "Prototyping tools"],
+          "salary_range": "₹20-65 LPA",
+          "interview_process": "Portfolio Review → Design Challenge → HR Interview",
+          "hiring_roles": ["Product Designer", "Visual Designer"],
+          "popular_questions": ["Design tools proficiency", "Portfolio projects", "Design thinking"],
+          "difficulty": "Medium-Hard"
+        }
+      ]
+    },
+    "HR": {
+      "industry_name": "Human Resources",
+      "description": "Talent Acquisition, HR Operations, L&D",
+      "companies": [
+        {
+          "name": "LinkedIn",
+          "type": "HR Tech",
+          "headquarters": "Sunnyvale, USA (India: Bangalore)",
+          "founded": 2003,
+          "tech_stack": ["LinkedIn Recruiter", "ATS", "Analytics"],
+          "salary_range": "₹20-60 LPA",
+          "interview_process": "Phone Screen → Technical/Behavioral → Manager Round",
+          "hiring_roles": ["HR Manager", "Recruiter", "HR Business Partner"],
+          "popular_questions": ["Recruitment strategy", "People analytics", "Employee engagement"],
+          "difficulty": "Medium"
+        },
+        {
+          "name": "Indeed",
+          "type": "Job Portal",
+          "headquarters": "Austin, USA (India: Bangalore)",
+          "founded": 2004,
+          "tech_stack": ["ATS Systems", "Analytics", "HRIS"],
+          "salary_range": "₹15-50 LPA",
+          "interview_process": "Phone Screen → Interview → HR Round",
+          "hiring_roles": ["Recruiter", "HR Manager", "Talent Acquisition"],
+          "popular_questions": ["Talent acquisition", "HRIS knowledge", "Problem solving"],
+          "difficulty": "Medium"
+        }
+      ]
+    }
+  }
+}
