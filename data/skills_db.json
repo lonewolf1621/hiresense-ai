@@ -1,0 +1,19 @@
+{
+  "core_skills": [
+    "python", "java", "javascript", "c++", "go", "rust",
+    "sql", "mongodb", "postgresql", "mysql", "redis",
+    "react", "angular", "vue", "node.js", "django", "fastapi",
+    "aws", "azure", "gcp", "docker", "kubernetes",
+    "git", "linux", "rest api", "graphql", "microservices",
+    "machine learning", "deep learning", "nlp", "tensorflow", "pytorch",
+    "agile", "scrum", "jira", "ci/cd", "jenkins", "gitlab"
+  ],
+  "role_keywords": {
+    "backend developer": ["fastapi", "api", "sql", "docker", "python"],
+    "frontend developer": ["react", "javascript", "css", "html", "angular"],
+    "full stack developer": ["python", "javascript", "react", "sql", "api"],
+    "data engineer": ["sql", "python", "spark", "hadoop", "etl"],
+    "ml engineer": ["machine learning", "python", "tensorflow", "pytorch"],
+    "devops engineer": ["docker", "kubernetes", "jenkins", "aws", "linux"]
+  }
+}
