@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import os
-import tempfile
 from app.services.resume_parser import parse_resume
 
 st.set_page_config(
@@ -130,8 +129,11 @@ with st.sidebar:
     st.markdown("💡 Include all skills & experience  \n💡 Use complete job descriptions  \n💡 Better matching = Better insights")
 
 # Main tabs
-tab1, tab2 = st.tabs(["📊 Analyzer", "ℹ️ About"])
+tab1, tab2, tab3 = st.tabs(["📊 Single Analyzer", "🔄 Compare Jobs", "ℹ️ About"])
 
+# ============================================================================
+# TAB 1: SINGLE ANALYZER
+# ============================================================================
 with tab1:
     st.markdown("---")
     
@@ -217,7 +219,7 @@ with tab1:
                         st.success("✅ Analysis Complete!")
                         st.markdown("---")
 
-                                                # Score Display with Progress
+                        # Score Display with Progress
                         col1, col2, col3 = st.columns(3)
                         
                         with col1:
@@ -255,6 +257,9 @@ with tab1:
                                 st.success("Perfect! No missing skills")
                             else:
                                 st.warning(f"Learn {missing} more skill(s)")
+
+                        st.markdown("---")
+
                         # Detailed Analysis - Improved
                         col1, col2 = st.columns(2)
 
@@ -283,6 +288,8 @@ with tab1:
                                 """, unsafe_allow_html=True)
                             else:
                                 st.success("✨ All required skills present!")
+
+                        st.markdown("---")
 
                         # Bonus Skills
                         if data['bonus_skills']:
@@ -335,7 +342,209 @@ https://hiresense-ai-vishal.streamlit.app
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
 
+# ============================================================================
+# TAB 2: COMPARE JOBS
+# ============================================================================
 with tab2:
+    st.markdown("### 🔄 Compare Your Resume Against Multiple Jobs")
+    st.markdown("Upload or paste your resume once, then compare it against 2-5 different job descriptions to find the best fit!")
+    
+    st.markdown("---")
+    
+    # Resume input
+    st.markdown("#### 📄 Your Resume")
+    compare_resume_source = st.radio(
+        "Resume input method:",
+        ["📝 Paste Text", "📤 Upload File"],
+        key="compare_resume_input"
+    )
+    
+    compare_resume = ""
+    if compare_resume_source == "📝 Paste Text":
+        compare_resume = st.text_area(
+            "Paste your resume here:",
+            height=200,
+            placeholder="Paste your resume text...",
+            key="compare_resume_text"
+        )
+    else:
+        compare_resume_file = st.file_uploader(
+            "Upload your resume (PDF or DOCX):",
+            type=["pdf", "docx", "doc"],
+            key="compare_resume_file"
+        )
+        if compare_resume_file:
+            file_bytes = compare_resume_file.read()
+            file_type = compare_resume_file.name.split(".")[-1]
+            compare_resume = parse_resume(file_bytes, file_type)
+            if compare_resume:
+                st.success(f"✅ Uploaded: {compare_resume_file.name}")
+            else:
+                st.error("❌ Could not extract text")
+    
+    st.markdown("---")
+    
+    # Job descriptions
+    st.markdown("#### 💼 Job Descriptions (2-5 jobs)")
+    num_jobs = st.slider("How many jobs to compare?", min_value=2, max_value=5, value=2)
+    
+    job_descriptions = []
+    for i in range(num_jobs):
+        st.markdown(f"**Job {i+1}:**")
+        job_col1, job_col2 = st.columns(2)
+        
+        with job_col1:
+            job_source = st.radio(
+                "Input method:",
+                ["📝 Paste", "📤 Upload"],
+                key=f"job_source_{i}",
+                horizontal=True
+            )
+        
+        with job_col2:
+            pass
+        
+        if job_source == "📝 Paste":
+            job_text = st.text_area(
+                f"Paste job {i+1} description:",
+                height=150,
+                placeholder="Paste job description...",
+                key=f"job_text_{i}"
+            )
+            job_descriptions.append(job_text)
+        else:
+            job_file = st.file_uploader(
+                f"Upload job {i+1} description:",
+                type=["pdf", "docx", "doc", "txt"],
+                key=f"job_file_{i}"
+            )
+            if job_file:
+                file_bytes = job_file.read()
+                file_type = job_file.name.split(".")[-1]
+                job_text = parse_resume(file_bytes, file_type)
+                job_descriptions.append(job_text)
+            else:
+                job_descriptions.append("")
+        
+        st.divider()
+    
+    # Compare button
+    if st.button("🔍 Compare Resume Against All Jobs", use_container_width=True, key="compare_btn"):
+        if not compare_resume or not any(job_descriptions):
+            st.warning("⚠️ Please provide resume and at least one job description")
+        else:
+            with st.spinner("📊 Comparing your resume..."):
+                try:
+                    response = requests.post(
+                        API_URL.replace("/analyze", "/compare"),
+                        json={
+                            "resume": compare_resume,
+                            "jobs": [j for j in job_descriptions if j.strip()]
+                        },
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        
+                        st.success("✅ Comparison Complete!")
+                        st.markdown("---")
+                        
+                        # Summary metrics
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.metric(
+                                "🏆 Best Match",
+                                f"Job {data['best_match_job']}",
+                                f"{data['best_match_score']}%"
+                            )
+                        
+                        with col2:
+                            st.metric(
+                                "📊 Average Match",
+                                f"{data['average_score']}%",
+                                f"Across {data['total_jobs']} jobs"
+                            )
+                        
+                        with col3:
+                            st.metric(
+                                "⚠️ Worst Match",
+                                f"Job {data['worst_match_job']}",
+                                f"{data['worst_match_score']}%"
+                            )
+                        
+                        st.markdown("---")
+                        
+                        # Detailed comparison
+                        st.markdown("### 📈 Detailed Comparison")
+                        
+                        # Create comparison table
+                        comparison_data = []
+                        for result in data['results']:
+                            comparison_data.append({
+                                "Job": f"Job {result['job_number']}",
+                                "Match %": result['match_score_percent'],
+                                "Matched Skills": len(result['matched_skills']),
+                                "Missing Skills": len(result['missing_skills'])
+                            })
+                        
+                        st.dataframe(comparison_data, use_container_width=True)
+                        
+                        st.markdown("---")
+                        
+                        # Detailed results for each job
+                        st.markdown("### 📋 Job-by-Job Breakdown")
+                        
+                        for i, result in enumerate(data['results'], 1):
+                            with st.expander(f"Job {i} Details (Match: {result['match_score_percent']}%)", 
+                                           expanded=(i == data['best_match_job'])):
+                                
+                                col1, col2 = st.columns(2)
+                                
+                                with col1:
+                                    st.markdown("**✅ Matched Skills:**")
+                                    if result['matched_skills']:
+                                        st.markdown(", ".join(result['matched_skills']))
+                                    else:
+                                        st.info("No matched skills")
+                                
+                                with col2:
+                                    st.markdown("**❌ Missing Skills:**")
+                                    if result['missing_skills']:
+                                        st.markdown(", ".join(result['missing_skills']))
+                                    else:
+                                        st.success("All skills present!")
+                                
+                                st.markdown("**💡 Suggestions:**")
+                                for suggestion in result['suggestions']:
+                                    st.info(suggestion)
+                        
+                        st.markdown("---")
+                        
+                        # Recommendation
+                        best_job = data['best_match_job']
+                        best_score = data['best_match_score']
+                        
+                        st.markdown(f"""
+                        ### 🎯 Recommendation
+                        
+                        Based on your resume, **Job {best_job}** is the best fit with a match score of **{best_score}%**.
+                        
+                        This job aligns well with your skills and experience. Focus on learning the missing skills
+                        and you'll be a strong candidate!
+                        """)
+                    
+                    else:
+                        st.error(f"❌ API Error: {response.status_code}")
+                
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+
+# ============================================================================
+# TAB 3: ABOUT
+# ============================================================================
+with tab3:
     st.markdown("""
     ## About HireSense AI
     
@@ -349,6 +558,7 @@ with tab2:
     - **India-Focused:** Understands Indian tech job market
     - **Free & Anonymous:** No signups, no tracking
     - **Instant Results:** Get insights in seconds
+    - **Compare Jobs:** Find the best fit among multiple opportunities
     
     ### 🔧 Technology
     - **Backend:** FastAPI + Python
@@ -380,6 +590,6 @@ with tab2:
 st.markdown("---")
 st.markdown("""
     <div style='text-align: center; color: gray;'>
-    <small>HireSense AI | Smart Resume-Job Matching | v1.1</small>
+    <small>HireSense AI | Smart Resume-Job Matching | v1.2 | Multiple Job Comparison Now Available!</small>
     </div>
 """, unsafe_allow_html=True)
