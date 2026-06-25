@@ -18,8 +18,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🔥 API URL
-API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/analyze")
-
+API_URL = os.getenv("API_URL", "https://hiresense-api.onrender.com/analyze")
 # Header
 st.title("🚀 HireSense AI")
 st.subheader("Smart Job-Resume Matcher for Indian Job Seekers")
