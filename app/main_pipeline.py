@@ -1,12 +1,9 @@
 from app.services.skill_extractor import extract_skills
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
-import numpy as np
 
 
 def run_pipeline(resume: str, job_description: str) -> dict:
     """
-    Enhanced HireSense matching pipeline with TF-IDF similarity.
+    HireSense matching pipeline - simplified for Render deployment.
     Option B: Job Matcher
     """
 
@@ -19,26 +16,15 @@ def run_pipeline(resume: str, job_description: str) -> dict:
     missing_skills = sorted(jd_skills - resume_skills)
     bonus_skills = sorted(resume_skills - jd_skills)
 
-    # Step 3: Skill-based score
+    # Step 3: Skill-based score only (simple percentage)
     if jd_skills:
         skill_score = len(matched_skills) / len(jd_skills)
     else:
         skill_score = 0.0
 
-    # Step 4: Semantic similarity score using TF-IDF (lightweight alternative)
-    semantic_score = 0.0
-    try:
-        vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(2, 3))
-        vectors = vectorizer.fit_transform([resume, job_description])
-        semantic_score = float(cosine_similarity(vectors[0], vectors[1])[0][0])
-    except Exception as e:
-        print(f"Warning: Semantic scoring failed: {e}")
-        semantic_score = 0.0
+    match_score = round(skill_score * 100, 2)
 
-    # Step 5: Hybrid score (70% skills + 30% semantic)
-    match_score = round((0.7 * skill_score + 0.3 * semantic_score) * 100, 2)
-
-    # Step 6: Generate suggestions
+    # Step 4: Generate suggestions
     suggestions = []
     
     if missing_skills:
@@ -67,5 +53,5 @@ def run_pipeline(resume: str, job_description: str) -> dict:
         "total_resume_skills": len(resume_skills),
         "suggestions": suggestions,
         "skill_match_score": round(skill_score * 100, 2),
-        "semantic_score": round(semantic_score * 100, 2)
+        "semantic_score": 0.0
     }
