@@ -1,19 +1,12 @@
 from app.services.skill_extractor import extract_skills
 from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
-
-# Load model once
-try:
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-except Exception as e:
-    print(f"Warning: Could not load sentence transformer: {e}")
-    model = None
 
 
 def run_pipeline(resume: str, job_description: str) -> dict:
     """
-    Enhanced HireSense matching pipeline with semantic similarity.
+    Enhanced HireSense matching pipeline with TF-IDF similarity.
     Option B: Job Matcher
     """
 
@@ -32,13 +25,12 @@ def run_pipeline(resume: str, job_description: str) -> dict:
     else:
         skill_score = 0.0
 
-    # Step 4: Semantic similarity score
+    # Step 4: Semantic similarity score using TF-IDF (lightweight alternative)
     semantic_score = 0.0
     try:
-        if model:
-            resume_vec = model.encode(resume)
-            jd_vec = model.encode(job_description)
-            semantic_score = float(cosine_similarity([resume_vec], [jd_vec])[0][0])
+        vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(2, 3))
+        vectors = vectorizer.fit_transform([resume, job_description])
+        semantic_score = float(cosine_similarity(vectors[0], vectors[1])[0][0])
     except Exception as e:
         print(f"Warning: Semantic scoring failed: {e}")
         semantic_score = 0.0

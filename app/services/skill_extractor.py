@@ -2,24 +2,49 @@ import re
 import json
 import os
 
-# Load skills database
-SKILLS_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "skills_db.json")
-
-try:
-    with open(SKILLS_DB_PATH, "r") as f:
-        SKILLS_DATA = json.load(f)
-        SKILLS_DB = SKILLS_DATA.get("core_skills", [])
-        ROLE_KEYWORDS = SKILLS_DATA.get("role_keywords", {})
-except Exception as e:
-    print(f"Warning: Could not load skills_db.json: {e}")
-    # Fallback
-    SKILLS_DB = [
-        "python", "java", "javascript", "react", "angular",
-        "fastapi", "django", "node.js", "sql", "mongodb",
-        "aws", "docker", "kubernetes", "git", "linux",
-        "machine learning", "tensorflow", "pytorch"
+# Load skills database - FIX PATH
+def load_skills_db():
+    """Load skills database from JSON file"""
+    # Try multiple paths
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), "..", "data", "skills_db.json"),
+        os.path.join(os.getcwd(), "data", "skills_db.json"),
+        "data/skills_db.json"
     ]
-    ROLE_KEYWORDS = {}
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Error loading {path}: {e}")
+    
+    # Fallback if file not found
+    return {
+        "core_skills": [
+            "python", "java", "javascript", "c++", "go", "rust",
+            "sql", "mongodb", "postgresql", "mysql", "redis",
+            "react", "angular", "vue", "node.js", "django", "fastapi",
+            "aws", "azure", "gcp", "docker", "kubernetes",
+            "git", "linux", "rest api", "graphql", "microservices",
+            "machine learning", "deep learning", "nlp", "tensorflow", "pytorch",
+            "agile", "scrum", "jira", "ci/cd", "jenkins", "gitlab"
+        ],
+        "role_keywords": {
+            "backend developer": ["fastapi", "api", "sql", "docker", "python"],
+            "frontend developer": ["react", "javascript", "css", "html", "angular"],
+            "full stack developer": ["python", "javascript", "react", "sql", "api"],
+            "data engineer": ["sql", "python", "spark", "hadoop", "etl"],
+            "ml engineer": ["machine learning", "python", "tensorflow", "pytorch"],
+            "devops engineer": ["docker", "kubernetes", "jenkins", "aws", "linux"]
+        }
+    }
+
+
+SKILLS_DATA = load_skills_db()
+SKILLS_DB = SKILLS_DATA.get("core_skills", [])
+ROLE_KEYWORDS = SKILLS_DATA.get("role_keywords", {})
 
 
 def extract_skills(text):
