@@ -1,0 +1,166 @@
+{
+  "fields": [
+    {
+      "id": "IT",
+      "name": "Information Technology",
+      "icon": "💻",
+      "description": "Software, Cloud, DevOps, AI/ML",
+      "roles": [
+        "Backend Developer",
+        "Frontend Developer",
+        "Full Stack Developer",
+        "DevOps Engineer",
+        "Data Engineer",
+        "ML Engineer",
+        "Solutions Architect",
+        "QA Engineer"
+      ]
+    },
+    {
+      "id": "Finance",
+      "name": "Finance & Banking",
+      "icon": "💰",
+      "description": "Investment Banking, Asset Management",
+      "roles": [
+        "Investment Banker",
+        "Financial Analyst",
+        "Risk Manager",
+        "Portfolio Manager",
+        "Credit Analyst",
+        "Compliance Officer",
+        "Trading Analyst"
+      ]
+    },
+    {
+      "id": "Marketing",
+      "name": "Marketing & Advertising",
+      "icon": "📊",
+      "description": "Digital Marketing, Brand, Content",
+      "roles": [
+        "Digital Marketing Manager",
+        "Content Strategist",
+        "Brand Manager",
+        "SEO Specialist",
+        "Growth Marketer",
+        "Product Marketing Manager",
+        "Marketing Analytics"
+      ]
+    },
+    {
+      "id": "Design",
+      "name": "Design & UX",
+      "icon": "🎨",
+      "description": "UI/UX, Product Design, Graphics",
+      "roles": [
+        "Product Designer",
+        "UX Designer",
+        "UI Designer",
+        "Interaction Designer",
+        "Design Lead",
+        "UX Researcher",
+        "Visual Designer"
+      ]
+    },
+    {
+      "id": "HR",
+      "name": "Human Resources",
+      "icon": "👥",
+      "description": "Recruitment, L&D, HR Operations",
+      "roles": [
+        "Recruiter",
+        "HR Manager",
+        "Talent Acquisition",
+        "HR Business Partner",
+        "Learning & Development",
+        "Compensation & Benefits",
+        "Employee Relations"
+      ]
+    },
+    {
+      "id": "Sales",
+      "name": "Sales & Business Development",
+      "icon": "📈",
+      "description": "Sales, Account Management, B2B",
+      "roles": [
+        "Sales Executive",
+        "Account Manager",
+        "Sales Manager",
+        "Business Development",
+        "Inside Sales",
+        "Regional Manager",
+        "Enterprise Sales"
+      ]
+    },
+    {
+      "id": "Consulting",
+      "name": "Consulting",
+      "icon": "📋",
+      "description": "Management, Strategy, Operations",
+      "roles": [
+        "Management Consultant",
+        "Business Analyst",
+        "Strategy Consultant",
+        "Operations Consultant",
+        "Implementation Manager",
+        "Senior Consultant"
+      ]
+    },
+    {
+      "id": "Healthcare",
+      "name": "Healthcare",
+      "icon": "⚕️",
+      "description": "Medical, Nursing, Healthcare Admin",
+      "roles": [
+        "Doctor",
+        "Nurse",
+        "Healthcare Administrator",
+        "Medical Technologist",
+        "Pharmacist",
+        "Health Coach",
+        "Hospital Manager"
+      ]
+    }
+  ],
+  "field_keywords": {
+    "IT": {
+      "skills": ["Python", "Java", "AWS", "Docker", "React", "SQL", "Git", "REST API"],
+      "keywords": ["Development", "Software", "Engineering", "Cloud", "Database", "Architecture"],
+      "certifications": ["AWS", "Azure", "GCP", "Kubernetes", "Docker"]
+    },
+    "Finance": {
+      "skills": ["Excel", "Financial Modeling", "Risk Analysis", "Bloomberg", "SQL"],
+      "keywords": ["Analysis", "Investment", "Banking", "Risk", "Portfolio", "Trading"],
+      "certifications": ["CFA", "FRM", "ACCA", "CPA"]
+    },
+    "Marketing": {
+      "skills": ["Google Analytics", "SEO", "Content Strategy", "Salesforce", "Excel"],
+      "keywords": ["Campaign", "Strategy", "Marketing", "Digital", "Analytics", "Brand"],
+      "certifications": ["Google Analytics", "HubSpot", "Facebook Blueprint"]
+    },
+    "Design": {
+      "skills": ["Figma", "Adobe XD", "Prototyping", "User Research", "UI Design"],
+      "keywords": ["Design", "User Experience", "Interface", "Prototype", "Visual"],
+      "certifications": ["Figma", "Adobe", "UX Certification"]
+    },
+    "HR": {
+      "skills": ["HRIS", "Recruitment", "ATS", "Employee Relations", "Payroll"],
+      "keywords": ["Recruitment", "HR", "Talent", "Employee", "Hiring", "Culture"],
+      "certifications": ["SHRM-CP", "PHR", "CIPD"]
+    },
+    "Sales": {
+      "skills": ["Salesforce", "CRM", "Negotiation", "Pipeline Management", "Forecasting"],
+      "keywords": ["Sales", "Revenue", "Account", "Customer", "Pipeline", "Growth"],
+      "certifications": ["Salesforce", "HubSpot Sales"]
+    },
+    "Consulting": {
+      "skills": ["Problem Solving", "PowerPoint", "Data Analysis", "Project Management"],
+      "keywords": ["Consulting", "Strategy", "Analysis", "Implementation", "Operations"],
+      "certifications": ["PMP", "Six Sigma"]
+    },
+    "Healthcare": {
+      "skills": ["Patient Care", "Medical Knowledge", "EHR", "Clinical Skills"],
+      "keywords": ["Healthcare", "Medical", "Patient", "Clinical", "Hospital"],
+      "certifications": ["MD", "RN", "Certifications"]
+    }
+  }
+}
