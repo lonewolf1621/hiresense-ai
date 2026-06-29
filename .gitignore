@@ -1,10 +1,41 @@
-venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Firebase credentials (NEVER COMMIT THIS!)
+service-account-key.json
+firebase-config.json
+*.json
+
+# Environment variables
 .env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
 *.log
-data/venv/ 
-.env 
-__pycache__/ 
-*.pyc 
-.DS_Store 
+
+# Testing
+.pytest_cache/
+.coverage
+
+# Build
+build/
+dist/
+*.egg-info/
