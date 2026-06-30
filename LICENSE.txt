@@ -1,0 +1,121 @@
+HIRESENSE AI - BUSINESS SOURCE LICENSE (BSL 1.1)
+
+Licensor: Reddy
+Licensed Work: HireSense AI
+Change Date: 29 June 2030
+Change License: Apache License 2.0
+
+Terms and Conditions:
+
+1. GRANT OF RIGHTS
+
+The Licensor grants you the right to use, reproduce, prepare derivative works of, publicly display, publicly perform, and distribute the Licensed Work and Derivative Works thereof, subject to the Restrictions and Conditions below.
+
+2. RESTRICTIONS
+
+2.1 Non-Commercial Use Only
+You may NOT use the Licensed Work or any Derivative Work for Commercial Purposes.
+
+"Commercial Purposes" means any use of the Licensed Work with the intention of generating revenue, selling services, consulting, or any form of commercial transaction.
+
+Prohibited Examples:
+- Selling the software or access to it
+- Offering it as a paid SaaS service
+- Including it in a commercial product
+- Charging users for this software
+- White-labeling and reselling
+- Using it to generate revenue of any kind
+
+2.2 Attribution
+You must retain all copyright, patent, trademark, and attribution notices from the Licensed Work.
+
+2.3 Distribution
+If you distribute the Licensed Work or Derivative Works, you must provide recipients with a copy of this License.
+
+3. PERMITTED USES
+
+3.1 Personal Use
+You may use the Licensed Work for personal projects and learning.
+
+3.2 Non-Profit Use
+Non-profit organizations may use the Licensed Work for non-commercial purposes.
+
+3.3 Research and Education
+Academic institutions may use for educational and research purposes.
+
+3.4 Internal Business Use
+You may use the Licensed Work internally within your organization, but NOT for selling to external customers.
+
+Example: Company uses this internally for employee job search - ALLOWED
+Example: Company sells this as a product to customers - NOT ALLOWED
+
+4. MODIFICATIONS
+
+4.1 You may modify the Licensed Work.
+
+4.2 Any modifications must be clearly marked as modified versions.
+
+4.3 You must document what changes were made.
+
+4.4 Modified versions may only be distributed under these same terms.
+
+5. COMMERCIAL LICENSE
+
+5.1 If you wish to use the Licensed Work for Commercial Purposes, you must obtain a Commercial License from the Licensor.
+
+5.2 Commercial License Terms:
+- Price: $5,000 USD per year
+- Includes: Unlimited commercial use, modifications, and redistribution rights
+- Support: Email support included
+- Duration: Yearly subscription, cancellable with 30 days notice
+
+5.3 To obtain a Commercial License, contact:
+Email: license@hiresense-ai.com
+Subject: Commercial License Request
+
+6. CHANGE DATE AND LICENSE
+
+6.1 On 29 June 2030 (4 years from release), this License automatically converts to Apache License 2.0.
+
+6.2 This means after 29 June 2030, anyone can use this software commercially without restriction.
+
+6.3 Until then, the above restrictions apply.
+
+7. DISCLAIMER OF WARRANTIES
+
+THE LICENSED WORK IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+8. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE LICENSED WORK.
+
+9. TERM AND TERMINATION
+
+9.1 This License is perpetual unless terminated.
+
+9.2 If you breach the Non-Commercial Use restriction, this License terminates immediately.
+
+9.3 Upon termination, you must cease all use and destroy all copies of the Licensed Work.
+
+10. SEVERABILITY
+
+If any provision of this License is invalid or unenforceable, the remaining provisions remain in effect.
+
+11. ENTIRE AGREEMENT
+
+This License constitutes the entire agreement regarding the Licensed Work and supersedes all prior agreements.
+
+12. CONTACT
+
+For questions about licensing:
+Email: license@hiresense-ai.com
+Name: Reddy
+GitHub: https://github.com/lonewolf1621/hiresense-ai
+
+---
+
+Copyright (c) 2026 Reddy
+
+This Business Source License is not an Open Source license. However, the Licensed Work will become Open Source at the Change Date.
+
+Applicable law: International (jurisdiction-neutral)

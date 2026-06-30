@@ -1,0 +1,74 @@
+SUBJECT: HireSense AI Commercial License Inquiry - Response Template
+
+TO: [CUSTOMER_EMAIL]
+
+FROM: Vishal Reddy
+EMAIL: license@hiresense-ai.com
+
+---
+
+Dear [CUSTOMER_NAME],
+
+Thank you for your interest in obtaining a Commercial License for HireSense AI.
+
+COMMERCIAL LICENSE DETAILS:
+
+Product: HireSense AI
+License Type: 12-Month Commercial License
+Price: $5,000 USD per year
+Includes: Unlimited commercial use, modifications, support
+
+YOUR USE CASE:
+[DESCRIBE THEIR INTENDED USE]
+
+WHAT YOU CAN DO:
+✅ Sell the software to customers
+✅ Offer as a SaaS platform
+✅ Modify and extend the code
+✅ White-label and resell
+✅ Deploy on unlimited servers
+✅ Keep modifications private
+
+LICENSE TERMS:
+- Valid for 12 months
+- Renewable annually
+- Non-transferable to another company
+- Includes email support
+- 30-day money-back guarantee
+
+NEXT STEPS:
+
+1. Confirm you agree to these terms
+2. Provide company registration details
+3. Select payment method:
+   - Credit Card (Stripe)
+   - PayPal
+   - Bank Transfer
+   - UPI (India)
+   - Cryptocurrency
+
+4. Invoice will be sent
+5. Upon payment, License Agreement will be provided
+6. You can begin commercial use immediately
+
+PAYMENT OPTIONS:
+- Monthly: Not available (annual only)
+- Annual: $5,000 USD
+- Multi-year discounts available (contact for quote)
+
+CONTACT:
+If you have questions, reply to this email.
+
+Best regards,
+Vishal Reddy
+HireSense AI
+license@hiresense-ai.com
+
+---
+
+License Agreement will include:
+- Grant of rights for commercial use
+- Term and termination clauses
+- Warranty and liability disclaimers
+- Payment terms
+- Your specific company details
