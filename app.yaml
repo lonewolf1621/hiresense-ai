@@ -1,0 +1,17 @@
+runtime: python311
+service: hiresense-api
+env: standard
+
+handlers:
+  - url: /.*
+    script: auto
+
+env_variables:
+  SECRET_KEY: "ynQKvjSxCK_ToNORLJkm98WStA6hsEJQQSPo_6OyOY_hb4oEh4uzPlcTAvPpci2U"
+  GCP_PROJECT_ID: "hiresense-ai-prod"
+  GCS_BUCKET_NAME: "hiresense-ai-resumes"
+  API_BASE_URL: "https://hiresense-api.run.app/api"
+
+automatic_scaling:
+  min_instances: 1
+  max_instances: 10

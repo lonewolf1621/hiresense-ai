@@ -7,8 +7,8 @@ from streamlit_option_menu import option_menu
 import time
 
 # ============= CONFIG =============
-API_BASE_URL = "http://localhost:8000/api"
-st.set_page_config(page_title="HireSense AI", page_icon="🎯", layout="wide")
+import os
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api")st.set_page_config(page_title="HireSense AI", page_icon="🎯", layout="wide")
 
 # ============= SESSION STATE =============
 if 'token' not in st.session_state:
