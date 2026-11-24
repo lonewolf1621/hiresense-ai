@@ -25,14 +25,16 @@ flowchart LR
 ```
 
 1. **Skill extraction** from both texts against a curated vocabulary of 75 skills (plus 36 aliases), with aliases (`k8s` → kubernetes, `sklearn` → scikit-learn, "retrieval-augmented generation" → RAG) and guards against ordinary words (`go`, `rest`, `node`) being read as skills.
-2. **Retrieval:** the CV is split into bullets/sentences and embedded with the `all-MiniLM-L6-v2` Sentence Transformer (384 dimensions), run through ONNX Runtime via `fastembed` so it fits a 512 MB instance without PyTorch. The chunks go into a FAISS inner-product index, and each job requirement retrieves the CV line that supports it best.
-3. **Scoring:** `match = 0.6 × skill coverage + 0.4 × semantic coverage`, where semantic coverage is the mean calibrated similarity of the best evidence per requirement. If the model cannot load, the service falls back to lexical similarity and says so in the response (`"method": "lexical"`).
+2. **Requirement filtering:** job-advert boilerplate (company intro, benefits) is skipped; only requirement and duty sentences are scored.
+3. **Retrieval:** the CV is split into bullets/sentences and embedded with the `all-MiniLM-L6-v2` Sentence Transformer (384 dimensions), run through ONNX Runtime via `fastembed` so it fits a 512 MB instance without PyTorch. The chunks go into a FAISS inner-product index, and each job requirement retrieves the CV line that supports it best.
+4. **Scoring:** `match = 0.6 × skill coverage + 0.4 × semantic coverage`, where semantic coverage is the mean calibrated similarity of the best evidence per requirement. If the model cannot load, the service falls back to lexical similarity and says so in the response (`"method": "lexical"`).
 
 ## API
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | `POST` | `/api/match` | none | `{resume_text, job_description}` → score, skills, evidence, suggestions |
+| `POST` | `/api/match/file` | none | Same, with the CV uploaded as PDF, DOCX or TXT (multipart `file` + `job_description`) |
 | `POST` | `/api/auth/register`, `/api/auth/login` | none | JWT access token (bcrypt-hashed passwords) |
 | `GET/PUT` | `/api/profile` | Bearer | Profile |
 | `POST/GET/DELETE` | `/api/resumes…` | Bearer | CV upload to Cloud Storage, list, delete |
@@ -48,10 +50,27 @@ curl -X POST https://hiresense-ai-3k4d.onrender.com/api/match \
 
 ## Evaluation
 
-- `python evaluate.py` scores skill extraction on [`data/eval/skill_extraction.json`](data/eval/skill_extraction.json): 40 hand-labelled CV/JD sentences (90 skill mentions) including traps such as C++/C#, Node.js, "sentence-transformers" vs "transformers", and English uses of *go* and *rest*. Current result: precision 1.00, recall 1.00. The set was written alongside the extractor, so treat it as a regression suite that CI enforces (F1 ≥ 0.90), not as a benchmark.
-- `pytest -q` covers the matcher (scoring behaviour, empty inputs, a stronger CV scoring higher) and the API (register → login → profile, wrong passwords, duplicate emails, token checks, `/api/match`).
+### Public benchmark: does the score agree with human fit labels?
 
-Both run in GitHub Actions on every push.
+[`benchmarks/fit_benchmark.py`](benchmarks/fit_benchmark.py) scores the test split of [cnamuangtoun/resume-job-description-fit](https://huggingface.co/datasets/cnamuangtoun/resume-job-description-fit): 1,759 real CV / job-advert pairs labelled *No Fit* (857), *Potential Fit* (444) or *Good Fit* (458). HireSense is not trained on this data; weights are tuned on a train sample only. Runs in GitHub Actions ([`benchmark.yml`](.github/workflows/benchmark.yml)); results in [`benchmarks/results/`](benchmarks/results/).
+
+| Score (test set, n = 1,759) | ROC-AUC fit vs no fit | Spearman vs label |
+|---|---|---|
+| Overall match score (0.6 skills / 0.4 semantic) | 0.552 | 0.07 |
+| Semantic coverage only | **0.563** | 0.06 |
+| Skill coverage only | 0.521 | 0.05 |
+
+**Honest reading:** the score agrees with these labels only slightly better than chance (0.5). The labels judge overall fit (seniority, domain, career history) across all industries, while HireSense's skill vocabulary is tech-focused; models fine-tuned on this dataset also score close to the floor according to their own model cards. Two things changed because of the benchmark:
+
+- **Boilerplate filtering:** a [feature experiment](benchmarks/feature_experiment.py) over 11 signals (selected on the train split, reported on test) showed that scoring only requirement and duty sentences beats scoring every line, so the matcher now ignores "About us", benefits and mission text (semantic AUC 0.547 → 0.563).
+- **Where the signal is:** whole-document similarity (0.58) and a logistic regression over all signals (0.59) were the strongest; on this mixed-industry data skill coverage adds little. Both are documented for the next iteration rather than shipped, as the gain is small.
+
+**Speed:** 0.22 s per CV/job pair with a cold cache, about **16,700 pairs per hour on one CPU** (GitHub Actions runner); repeated CV and job lines are cached.
+
+### Regression tests
+
+- `python evaluate.py` scores skill extraction on [`data/eval/skill_extraction.json`](data/eval/skill_extraction.json): 40 hand-labelled sentences (90 skill mentions) including traps such as C++/C#, Node.js, "sentence-transformers" vs "transformers", and English uses of *go* and *rest*. All pass; the set was written alongside the extractor, so it is a regression suite that CI enforces (F1 ≥ 0.90), not a benchmark.
+- `pytest -q` covers the matcher (scoring, boilerplate filtering, empty inputs) and the API (register → login → profile, wrong passwords, duplicate emails, token checks, `/api/match`, `/api/match/file`).
 
 ## Security
 
@@ -84,6 +103,7 @@ streamlit_app.py             Streamlit front end (matcher page available without
 data/eval/                   Labelled skill-extraction set and latest results
 tests/                       pytest suite (matcher + API)
 evaluate.py                  Skill-extraction evaluation
+benchmarks/                  Public fit benchmark, feature experiment and results
 ```
 
 ## Limitations and roadmap
@@ -91,7 +111,7 @@ evaluate.py                  Skill-extraction evaluation
 - **Job search** currently returns sample listings; the Indeed/Naukri/Internshala scrapers in `scrapers/` are not wired in. Next step: UK job APIs (Adzuna, Reed).
 - **Dashboard** figures are placeholders until Firebase is connected.
 - **Skill vocabulary** is tech-focused (75 skills); non-technical roles rely on the semantic score.
-- Planned: LLM re-ranking of the top requirements, a larger labelled evaluation set from real job adverts, and CV upload straight into `/api/match`.
+- Planned: a learned fit model on top of the current signals (benchmarked at ROC-AUC 0.59 vs 0.55), and optional LLM re-ranking of the top requirements.
 
 ## License
 

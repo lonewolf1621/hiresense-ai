@@ -178,8 +178,8 @@ def requirement_lines(jd_text: str, limit: int = 25) -> List[str]:
     """Job-description sentences that state requirements or duties.
 
     Company boilerplate ("About us", benefits, mission statements) is skipped:
-    on the public fit benchmark, scoring only requirement-like sentences
-    raised the semantic signal's test AUC from 0.53 to 0.57.
+    on the public fit benchmark (benchmarks/), this raised the semantic
+    signal's test ROC-AUC from 0.547 to 0.563.
     """
     sentences = _job_sentences(jd_text)
     lines = [l for l in sentences if len(l.split()) >= 4]
