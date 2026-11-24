@@ -40,6 +40,8 @@ flowchart LR
 | `POST` | `/api/match/rank` | none | `{job_description, resumes: [{name, text}]}` → up to 10 CVs ranked best first |
 | `POST` | `/api/match/rank/files` | none | Same, with 1–10 uploaded CVs (multipart `files` + `job_description`); unreadable files are listed as skipped |
 | `POST` | `/api/auth/register`, `/api/auth/login` | none | JWT access token (bcrypt-hashed passwords) |
+| `POST` | `/api/jobs/search` | Bearer | `{keyword, location, source?}` → live jobs with full descriptions and links (Remotive, Arbeitnow, optional Adzuna) |
+| `GET/POST/PUT/DELETE` | `/api/applications…` | Bearer | Track jobs you applied to or saved; statuses Saved → Applied → Interview → Offer / Rejected |
 | `GET/PUT` | `/api/profile` | Bearer | Profile |
 | `POST/GET/DELETE` | `/api/resumes…` | Bearer | CV upload to Cloud Storage, list, delete |
 | `POST/GET/PUT` | `/api/applications…` | Bearer | Application tracking |
@@ -128,7 +130,7 @@ benchmarks/                  Public fit benchmark, feature experiment and result
 
 ## Limitations and roadmap
 
-- **Job search** currently returns sample listings; the Indeed/Naukri/Internshala scrapers in `scrapers/` are not wired in. Next step: UK job APIs (Adzuna, Reed).
+- **Job search** uses public feeds: Remotive (remote jobs worldwide) and Arbeitnow (Europe) need no key; UK, US, India and other on-site jobs come from Adzuna when `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` are set. Adzuna returns shortened descriptions. The older Indeed/Naukri/Internshala scrapers in `scrapers/` are not used.
 - **Dashboard** figures are placeholders until Firebase is connected.
 - **Skill vocabulary** is tech-focused (75 skills); non-technical roles rely on the semantic score.
 - Planned: a learned fit model on top of the current signals (benchmarked at ROC-AUC 0.59 vs 0.55), and optional LLM re-ranking of the top requirements.

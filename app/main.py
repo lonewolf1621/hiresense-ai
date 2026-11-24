@@ -15,7 +15,7 @@ import threading
 from config.firebase_config import db, storage_bucket
 from app.services.firestore_service import FirestoreService
 from app.services.cloud_storage_service import CloudStorageService
-from app.services import matcher
+from app.services import matcher, job_feeds
 
 # ============= CONFIG =============
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -131,13 +131,18 @@ class JobApplication(BaseModel):
     jobId: str
     jobTitle: str
     company: str
-    matchScore: float
+    matchScore: Optional[float] = None
+    url: Optional[str] = ""
+    location: Optional[str] = ""
+    source: Optional[str] = ""
+    status: Optional[str] = "Applied"
     notes: Optional[str] = ""
 
 class JobSearch(BaseModel):
-    keyword: str
-    location: str = "India"
+    keyword: str = Field(..., min_length=2, max_length=100)
+    location: str = Field("", max_length=100, description='City, country, "Remote", or empty for anywhere')
     source: Optional[str] = None
+    country: Optional[str] = Field(None, description="Adzuna country code, e.g. gb, us, in")
 
 # ============= DEPENDENCY =============
 async def get_current_user(authorization: Optional[str] = Header(None)):
@@ -359,121 +364,103 @@ async def delete_resume(resume_id: str, current_user: dict = Depends(get_current
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============= JOB ROUTES =============
+# Jobs seen in recent searches, so a job can be fetched again by id.
+_JOB_INDEX: Dict[str, Dict] = {}
+# Applications per user when Firebase is not configured (cleared on restart).
+_DEMO_APPS: Dict[str, Dict[str, Dict]] = {}
+APPLICATION_STATUSES = ["Saved", "Applied", "Interview", "Offer", "Rejected"]
+
+
+@app.get("/api/jobs/sources")
+async def job_sources():
+    """Which live job feeds are enabled."""
+    return {"sources": job_feeds.available_sources(),
+            "adzuna_countries": sorted(set(job_feeds.ADZUNA_COUNTRIES.values()))}
+
+
 @app.post("/api/jobs/search")
 async def search_jobs(search: JobSearch, current_user: dict = Depends(get_current_user)):
-    """Search jobs from multiple sources."""
-    try:
-        print(f"[JOBS] Searching: {search.keyword} in {search.location}")
-        
-        jobs = [
-            {
-                "title": "Senior Python Developer",
-                "company": "Google",
-                "location": "Bangalore",
-                "salary": "20-30 LPA",
-                "description": "Looking for a senior Python developer with AWS experience...",
-                "skills": ["python", "aws", "docker"],
-                "source": "Indeed",
-                "sourceUrl": "https://indeed.com/jobs?q=python",
-                "postedDate": "2026-06-28"
-            },
-            {
-                "title": "Full Stack Developer",
-                "company": "Microsoft",
-                "location": "Hyderabad",
-                "salary": "18-25 LPA",
-                "description": "Full stack developer with React and Node.js experience...",
-                "skills": ["react", "node.js", "sql"],
-                "source": "Naukri",
-                "sourceUrl": "https://naukri.com/jobs",
-                "postedDate": "2026-06-27"
-            },
-            {
-                "title": "Backend Engineer",
-                "company": "Amazon",
-                "location": "Bangalore",
-                "salary": "22-32 LPA",
-                "description": "Backend engineer with Java and microservices experience...",
-                "skills": ["java", "spring boot", "kubernetes"],
-                "source": "Internshala",
-                "sourceUrl": "https://internshala.com/jobs",
-                "postedDate": "2026-06-26"
-            }
-        ]
-        
-        return {"total": len(jobs), "jobs": jobs}
-    except Exception as e:
-        print(f"[JOBS] ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Search live job feeds; every job includes its full description and original link."""
+    result = await run_in_threadpool(job_feeds.search, search.keyword, search.location,
+                                     search.source, search.country)
+    for job in result["jobs"]:
+        _JOB_INDEX[job["id"]] = job
+    if len(_JOB_INDEX) > 5000:  # keep memory bounded on a small instance
+        for k in list(_JOB_INDEX)[:-2000]:
+            _JOB_INDEX.pop(k, None)
+    return result
 
-@app.get("/api/jobs")
-async def get_jobs(current_user: dict = Depends(get_current_user)):
-    """Get all jobs."""
-    try:
-        print(f"[JOBS] Getting all jobs")
-        jobs = FirestoreService.search_jobs()
-        return {"jobs": jobs if jobs else []}
-    except Exception as e:
-        print(f"[JOBS] ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/jobs/{job_id}")
 async def get_job(job_id: str, current_user: dict = Depends(get_current_user)):
-    """Get specific job."""
-    try:
-        print(f"[JOBS] Getting job {job_id}")
-        # Return demo job
-        return {
-            "title": "Senior Developer",
-            "company": "Tech Company",
-            "location": "Bangalore"
-        }
-    except Exception as e:
-        print(f"[JOBS] ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """A job from a recent search, with its full description."""
+    job = _JOB_INDEX.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found (search again to refresh)")
+    return job
+
 
 # ============= APPLICATION ROUTES =============
 @app.post("/api/applications")
-async def apply_job(app: JobApplication, current_user: dict = Depends(get_current_user)):
-    """Create job application."""
-    try:
-        uid = current_user['user_id']
-        aid = str(uuid.uuid4())
-        print(f"[APP] Creating application {aid}")
-        
-        ok = FirestoreService.save_job_application(uid, aid, app.dict())
-        if ok:
-            return {"message": "Application saved", "application_id": aid}
-        raise HTTPException(status_code=500, detail="Save failed")
-    except Exception as e:
-        print(f"[APP] ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+async def apply_job(application: JobApplication, current_user: dict = Depends(get_current_user)):
+    """Track a job you applied to (or saved). Applying itself happens on the job's own site."""
+    uid = current_user["user_id"]
+    aid = str(uuid.uuid4())
+    record = application.dict()
+    if record.get("status") not in APPLICATION_STATUSES:
+        record["status"] = "Applied"
+    record.update({"id": aid,
+                   "appliedDate": datetime.utcnow().strftime("%Y-%m-%d")})
+    if FIREBASE_AVAILABLE:
+        if not FirestoreService.save_job_application(uid, aid, record):
+            raise HTTPException(status_code=500, detail="Save failed")
+    else:
+        with _DEMO_LOCK:
+            apps = _DEMO_APPS.setdefault(uid, {})
+            for existing in apps.values():
+                if existing["jobId"] == record["jobId"]:
+                    return {"message": "Already tracked", "application_id": existing["id"]}
+            apps[aid] = record
+    return {"message": "Application saved", "application_id": aid}
+
 
 @app.get("/api/applications")
 async def get_applications(current_user: dict = Depends(get_current_user)):
-    """Get user applications."""
-    try:
-        uid = current_user['user_id']
-        print(f"[APP] Getting applications for {uid}")
-        apps = FirestoreService.get_user_applications(uid)
-        return {"applications": apps if apps else []}
-    except Exception as e:
-        print(f"[APP] ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Your tracked applications, newest first."""
+    uid = current_user["user_id"]
+    if FIREBASE_AVAILABLE:
+        apps = FirestoreService.get_user_applications(uid) or []
+    else:
+        apps = list(_DEMO_APPS.get(uid, {}).values())
+    apps.sort(key=lambda a: a.get("appliedDate", ""), reverse=True)
+    return {"applications": apps, "statuses": APPLICATION_STATUSES}
+
 
 @app.put("/api/applications/{app_id}")
 async def update_application(app_id: str, status: str, current_user: dict = Depends(get_current_user)):
-    """Update application status."""
-    try:
-        uid = current_user['user_id']
-        print(f"[APP] Updating {app_id} to {status}")
-        ok = FirestoreService.update_application_status(uid, app_id, status)
-        if ok:
-            return {"message": "Updated"}
-        raise HTTPException(status_code=500, detail="Update failed")
-    except Exception as e:
-        print(f"[APP] ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Change an application's status (Saved, Applied, Interview, Offer, Rejected)."""
+    if status not in APPLICATION_STATUSES:
+        raise HTTPException(status_code=422, detail=f"Status must be one of {APPLICATION_STATUSES}")
+    uid = current_user["user_id"]
+    if FIREBASE_AVAILABLE:
+        if not FirestoreService.update_application_status(uid, app_id, status):
+            raise HTTPException(status_code=500, detail="Update failed")
+    else:
+        app_rec = _DEMO_APPS.get(uid, {}).get(app_id)
+        if not app_rec:
+            raise HTTPException(status_code=404, detail="Application not found")
+        app_rec["status"] = status
+    return {"message": "Updated", "status": status}
+
+
+@app.delete("/api/applications/{app_id}")
+async def delete_application(app_id: str, current_user: dict = Depends(get_current_user)):
+    uid = current_user["user_id"]
+    if FIREBASE_AVAILABLE:
+        raise HTTPException(status_code=501, detail="Not supported with Firebase yet")
+    if not _DEMO_APPS.get(uid, {}).pop(app_id, None):
+        raise HTTPException(status_code=404, detail="Application not found")
+    return {"message": "Deleted"}
 
 # ============= MATCHING =============
 class MatchRequest(BaseModel):

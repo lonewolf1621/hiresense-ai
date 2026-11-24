@@ -138,43 +138,26 @@ def login_page():
 def dashboard_page():
     """Main dashboard"""
     st.title(f"👋 Welcome, {st.session_state.user_name}!")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("📄 Resumes", "3", "+1 new")
-    
-    with col2:
-        st.metric("💼 Applications", "12", "+2 this week")
-    
-    with col3:
-        st.metric("⭐ Match Score", "78%", "+5%")
-    
-    with col4:
-        st.metric("🎯 Target Jobs", "45", "Active")
-    
+    ok, resp = api_call("GET", "/applications")
+    apps = resp.get("applications", []) if ok else []
+    scored = [a["matchScore"] for a in apps if a.get("matchScore") is not None]
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("📋 Tracked jobs", len(apps))
+    c2.metric("✅ Applied", sum(a.get("status") == "Applied" for a in apps))
+    c3.metric("🗣️ Interviews", sum(a.get("status") == "Interview" for a in apps))
+    c4.metric("⭐ Avg match", f"{sum(scored) / len(scored):.0f}%" if scored else "—")
+
     st.markdown("---")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("📊 Recent Applications")
-        success, response = api_call("GET", "/applications", None)
-        
-        if success and response.get('applications'):
-            apps_df = pd.DataFrame(response['applications'][:5])
-            st.dataframe(apps_df[['jobTitle', 'company', 'status', 'matchScore']], use_container_width=True)
-        else:
-            st.info("No applications yet")
-    
-    with col2:
-        st.subheader("📈 Quick Stats")
-        st.write("""
-        - **Profile Completion**: 85%
-        - **Top Skills**: Python, SQL, React
-        - **Experience**: 3+ Years
-        - **Target Roles**: Senior Developer
-        """)
+    st.subheader("Recent applications")
+    if apps:
+        df = pd.DataFrame(apps[:8])
+        cols = [c for c in ["jobTitle", "company", "status", "matchScore", "appliedDate"] if c in df]
+        st.dataframe(df[cols], use_container_width=True, hide_index=True)
+    else:
+        st.info("No applications yet. Start in 💼 Find Jobs.")
+    st.caption("Demo mode: accounts and applications are kept in memory and reset when the free server restarts.")
+
 
 def profile_page():
     """User profile page"""
@@ -311,134 +294,155 @@ def resumes_page():
     else:
         st.info("No resumes uploaded yet")
 
+def track_job(job, status, score=None):
+    ok, resp = api_call("POST", "/applications", {
+        "jobId": job["id"], "jobTitle": job["title"], "company": job["company"],
+        "matchScore": score, "url": job.get("url", ""), "location": job.get("location", ""),
+        "source": job.get("source", ""), "status": status,
+    })
+    if ok:
+        st.success("Added to My Applications" if resp.get("message") != "Already tracked"
+                   else "Already in My Applications")
+    else:
+        st.error(f"Could not save: {resp}")
+
+
 def jobs_page():
-    """Job search page"""
+    """Live job search with full job descriptions."""
     st.title("💼 Find Jobs")
-    st.info("Demo: shows sample listings. Live job feeds are not connected yet. "
-            "Try the 🧠 Match CV page to score your CV against a real job description.")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        keyword = st.text_input("Job Title", placeholder="e.g., Python Developer")
-    
-    with col2:
-        location = st.text_input("Location", value="India", placeholder="City/Region")
-    
-    with col3:
-        source = st.selectbox("Source", ["All", "Indeed", "Naukri", "Internshala"])
-    
-    with col4:
-        if st.button("🔍 Search", use_container_width=True):
-            st.session_state.search_triggered = True
-    
-    st.markdown("---")
-    
-    if st.session_state.get('search_triggered'):
-        if keyword:
-            with st.spinner("Searching jobs..."):
-                search_data = {
-                    "keyword": keyword,
-                    "location": location,
-                    "source": None if source == "All" else source
-                }
-                
-                success, response = api_call("POST", "/jobs/search", search_data)
-                
-                if success:
-                    jobs = response.get('jobs', [])
-                    st.success(f"Found {len(jobs)} jobs!")
-                    
-                    for idx, job in enumerate(jobs):
-                        with st.expander(f"🏢 {job.get('title')} - {job.get('company')}"):
-                            col1, col2 = st.columns([3, 1])
-                            
-                            with col1:
-                                st.write(f"**Company:** {job.get('company')}")
-                                st.write(f"**Location:** {job.get('location')}")
-                                st.write(f"**Salary:** {job.get('salary')}")
-                                st.write(f"**Source:** {job.get('source')}")
-                                st.write(f"**Description:** {job.get('description')[:200]}...")
-                                
-                                if job.get('skills'):
-                                    st.write(f"**Skills:** {', '.join(job.get('skills'))}")
-                            
-                            with col2:
-                                if st.button("✅ Apply", key=f"apply_{idx}"):
-                                    app_data = {
-                                        "jobId": str(idx),
-                                        "jobTitle": job.get('title'),
-                                        "company": job.get('company'),
-                                        "matchScore": 85.0,
-                                        "notes": ""
-                                    }
-                                    
-                                    success, response = api_call("POST", "/applications", app_data)
-                                    
-                                    if success:
-                                        st.success("✅ Applied successfully!")
-                                    else:
-                                        st.error(f"❌ Application failed: {response}")
+    st.caption("Live listings from Remotive (remote, worldwide) and Arbeitnow (Europe), plus Adzuna "
+               "(UK, US, India and more) when its API key is configured. Apply on the employer's site, "
+               "then track it here.")
+
+    c1, c2, c3 = st.columns([2, 2, 1])
+    keyword = c1.text_input("Job title or skill", placeholder="e.g. machine learning engineer", key="job_kw")
+    location = c2.text_input("Location", value="United Kingdom",
+                             help='A city or country, "Remote", or leave empty for anywhere', key="job_loc")
+    if "job_sources" not in st.session_state:
+        ok, src = api_call("GET", "/jobs/sources")
+        if ok:
+            st.session_state.job_sources = src.get("sources", [])
+    sources = ["All"] + st.session_state.get("job_sources", [])
+    source = c3.selectbox("Source", sources, key="job_src")
+
+    with st.expander("📄 Optional: add your CV to score each job against it"):
+        cv_file = st.file_uploader("CV (PDF, DOCX or TXT)", type=["pdf", "docx", "txt"], key="jobs_cv")
+        if cv_file:
+            st.session_state.jobs_cv_text = extract_file_text(cv_file)
+        if st.session_state.get("jobs_cv_text"):
+            st.caption(f"CV loaded ({len(st.session_state.jobs_cv_text)} characters).")
+
+    if st.button("🔍 Search", type="primary", use_container_width=True, key="job_search_btn"):
+        if len(keyword.strip()) < 2:
+            st.warning("Enter a job title or skill")
+            return
+        with st.spinner("Searching live job boards…"):
+            ok, resp = api_call("POST", "/jobs/search", {
+                "keyword": keyword, "location": location,
+                "source": None if source == "All" else source})
+        if not ok:
+            st.error(f"Search failed: {resp}")
+            return
+        st.session_state.job_results = resp
+        st.session_state.job_scores = {}
+
+    result = st.session_state.get("job_results")
+    if not result:
+        return
+    jobs = result.get("jobs", [])
+    failed = [n for n, v in result.get("sources", {}).items() if not v.get("ok")]
+    st.success(f"{len(jobs)} jobs found")
+    if failed:
+        st.caption("Unavailable right now: " + ", ".join(failed))
+    if not jobs:
+        st.info('No matches. Try a broader title, or set Location to "Remote" or leave it empty.')
+
+    scores = st.session_state.setdefault("job_scores", {})
+    cv_text = st.session_state.get("jobs_cv_text", "")
+    for job in jobs:
+        jid = job["id"]
+        header = f"{job['title']} · {job['company']} · {job['location']}"
+        if jid in scores:
+            header = f"[{scores[jid]['match_score']:.0f}% match] " + header
+        with st.expander(header):
+            meta = [f"**Source:** {job['source']}"]
+            if job.get("posted"):
+                meta.append(f"**Posted:** {job['posted']}")
+            if job.get("salary"):
+                meta.append(f"**Salary:** {job['salary']}")
+            st.markdown(" · ".join(meta))
+
+            b1, b2, b3, b4 = st.columns(4)
+            if job.get("url"):
+                b1.link_button("🔗 Apply on site", job["url"], use_container_width=True)
+            score = scores.get(jid, {}).get("match_score")
+            if b2.button("✅ Mark as applied", key=f"applied_{jid}", use_container_width=True):
+                track_job(job, "Applied", score)
+            if b3.button("⭐ Save for later", key=f"save_{jid}", use_container_width=True):
+                track_job(job, "Saved", score)
+            if b4.button("🧠 Match my CV", key=f"match_{jid}", use_container_width=True,
+                         disabled=not cv_text):
+                with st.spinner("Matching…"):
+                    ok, m = api_call("POST", "/match", {"resume_text": cv_text,
+                                                        "job_description": job["description"][:30000]})
+                if ok:
+                    scores[jid] = m
+                    st.rerun()
                 else:
-                    st.error(f"❌ Search failed: {response}")
-        else:
-            st.warning("Please enter a job title")
+                    st.error(f"Matching failed: {m}")
+
+            if jid in scores:
+                m = scores[jid]
+                st.markdown(f"**Match {m['match_score']:.0f}%** · matched: "
+                            f"{', '.join(m['matched_skills']) or '—'} · missing: {', '.join(m['missing_skills']) or '—'}")
+
+            st.text_area("Job description", job.get("description") or "No description provided.",
+                         height=320, disabled=True, key=f"jd_{jid}")
+
 
 def applications_page():
-    """Applications tracking page"""
+    """Applications you are tracking."""
     st.title("📋 My Applications")
-    
-    # Filter options
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        status_filter = st.selectbox("Filter by Status", ["All", "Applied", "Rejected", "Interview", "Offer"])
-    
-    with col2:
-        sort_by = st.selectbox("Sort by", ["Latest", "Match Score", "Company"])
-    
-    with col3:
-        if st.button("🔄 Refresh", use_container_width=True):
-            st.rerun()
-    
+    ok, resp = api_call("GET", "/applications")
+    if not ok:
+        st.error(f"Could not load applications: {resp}")
+        return
+    apps = resp.get("applications", [])
+    statuses = resp.get("statuses", ["Saved", "Applied", "Interview", "Offer", "Rejected"])
+    if not apps:
+        st.info("Nothing tracked yet. In 💼 Find Jobs, open a job and click ✅ Mark as applied or ⭐ Save for later.")
+        return
+
+    counts = {s: sum(a.get("status") == s for a in apps) for s in statuses}
+    for col, s in zip(st.columns(len(statuses)), statuses):
+        col.metric(s, counts[s])
+    status_filter = st.selectbox("Show", ["All"] + statuses, key="app_filter")
     st.markdown("---")
-    
-    # Get applications
-    success, response = api_call("GET", "/applications", None)
-    
-    if success and response.get('applications'):
-        apps = response['applications']
-        
-        # Filter
-        if status_filter != "All":
-            apps = [app for app in apps if app.get('status') == status_filter]
-        
-        # Display
-        for app in apps:
-            col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-            
-            with col1:
-                st.write(f"**{app.get('jobTitle')}** - {app.get('company')}")
-            
-            with col2:
-                status = app.get('status', 'Applied')
-                status_color = {
-                    'Applied': '🟡',
-                    'Rejected': '🔴',
-                    'Interview': '🟢',
-                    'Offer': '✅'
-                }
-                st.write(f"{status_color.get(status, '⚪')} {status}")
-            
-            with col3:
-                st.write(f"⭐ {app.get('matchScore', 0):.0f}%")
-            
-            with col4:
-                st.write(f"📅 {app.get('appliedDate', 'N/A')}")
-            
-            st.divider()
-    else:
-        st.info("No applications yet")
+
+    for a in apps:
+        if status_filter != "All" and a.get("status") != status_filter:
+            continue
+        c1, c2, c3, c4 = st.columns([4, 2, 1, 1])
+        title = f"**{a.get('jobTitle')}** · {a.get('company')}"
+        if a.get("url"):
+            title += f"  \n[open advert]({a['url']})"
+        c1.markdown(title)
+        c1.caption(" · ".join(x for x in [a.get("location"), a.get("source"), a.get("appliedDate")] if x))
+        current = a.get("status", "Applied")
+        new = c2.selectbox("Status", statuses, index=statuses.index(current) if current in statuses else 1,
+                           key=f"status_{a['id']}", label_visibility="collapsed")
+        if new != current:
+            ok, r = api_call("PUT", f"/applications/{a['id']}?status={new}")
+            if ok:
+                st.rerun()
+            st.error(f"Update failed: {r}")
+        c3.write(f"⭐ {a['matchScore']:.0f}%" if a.get("matchScore") is not None else "—")
+        if c4.button("🗑️", key=f"del_app_{a['id']}", help="Remove"):
+            ok, r = api_call("DELETE", f"/applications/{a['id']}")
+            if ok:
+                st.rerun()
+            st.error(f"Delete failed: {r}")
+        st.divider()
 
 # ============= CV <-> JOB MATCHER =============
 def extract_file_text(uploaded):

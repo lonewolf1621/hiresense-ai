@@ -78,6 +78,22 @@ def main():
         raise SystemExit(f"FAIL /api/match/rank: status={status} order={order}")
     print(f"OK   /api/match/rank in {secs:.1f}s: {order}")
 
+    # Job search needs a login; demo accounts live in memory, so this one disappears on restart.
+    import uuid
+    _, reg, _ = request(f"{base}/api/auth/register", {
+        "email": f"smoke-{uuid.uuid4().hex[:10]}@example.com", "password": uuid.uuid4().hex, "name": "Smoke Test"})
+    req = urllib.request.Request(
+        f"{base}/api/jobs/search", data=json.dumps({"keyword": "python", "location": ""}).encode(),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {reg['access_token']}",
+                 "User-Agent": "hiresense-smoke-test"})
+    with urllib.request.urlopen(req, timeout=90) as r:
+        jobs = json.loads(r.read())
+    working = [n for n, v in jobs.get("sources", {}).items() if v.get("ok")]
+    if not working:
+        raise SystemExit(f"FAIL /api/jobs/search: no job feed answered ({jobs.get('sources')})")
+    with_desc = sum(len(j.get("description", "")) > 200 for j in jobs.get("jobs", []))
+    print(f"OK   /api/jobs/search: {jobs.get('total')} jobs, {with_desc} with full descriptions, feeds {jobs.get('sources')}")
+
 
 if __name__ == "__main__":
     main()
