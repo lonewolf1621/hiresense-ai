@@ -349,6 +349,7 @@ def jobs_page():
         if not ok:
             st.error(f"Search failed: {resp}")
             return
+        resp["searched_for"] = ", ".join(x for x in [location.strip(), country_name if country else ""] if x)
         st.session_state.job_results = resp
         st.session_state.job_scores = {}
 
@@ -358,6 +359,15 @@ def jobs_page():
     jobs = result.get("jobs", [])
     failed = [n for n, v in result.get("sources", {}).items() if not v.get("ok")]
     st.success(f"{len(jobs)} jobs found")
+    fits = result.get("fit_counts", {})
+    where = result.get("searched_for", "")
+    if where:
+        st.markdown(f"📍 **{fits.get('local', 0)}** based in {where} · 🌍 **{fits.get('remote_country', 0)}** remote, "
+                    f"open to {where} · 🌐 **{fits.get('remote_worldwide', 0)}** remote, open worldwide")
+        if not fits.get("local") and not fits.get("remote_country"):
+            st.info(f"The free feeds have no jobs based in {where} for this search right now, so these are remote "
+                    f"jobs open worldwide (the same list appears for any country). For local listings, use the "
+                    f"site buttons below, or add the Adzuna key.")
     if failed:
         st.caption("Unavailable right now: " + ", ".join(failed))
     other = result.get("other_sites", [])
@@ -372,7 +382,8 @@ def jobs_page():
     cv_text = st.session_state.get("jobs_cv_text", "")
     for job in jobs:
         jid = job["id"]
-        header = f"{job['title']} · {job['company']} · {job['location']}"
+        badge = {"local": "📍 ", "remote_country": "🌍 ", "remote_worldwide": "🌐 "}.get(job.get("fit"), "")
+        header = f"{badge}{job['title']} · {job['company']} · {job['location']}"
         if jid in scores:
             header = f"[{scores[jid]['match_score']:.0f}% match] " + header
         with st.expander(header):

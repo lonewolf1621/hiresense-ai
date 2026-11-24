@@ -100,3 +100,22 @@ def test_job_site_links_per_country():
 def test_search_needs_only_a_keyword(monkeypatch):
     monkeypatch.setattr(job_feeds, "search", lambda *a, **k: {"total": 0, "jobs": [], "sources": {}})
     assert client.post("/api/jobs/search", json={"keyword": "python"}, headers=_token()).status_code == 200
+
+
+def test_worldwide_remote_is_labelled_and_local_jobs_come_first(monkeypatch):
+    worldwide = {**JOB, "id": "w", "title": "Python Dev", "company": "W", "location": "Remote (Worldwide)",
+                 "remote_scope": "Worldwide", "posted": "2026-11-24"}
+    amsterdam = {**JOB, "id": "a", "title": "Python Dev", "company": "NL", "location": "Amsterdam",
+                 "remote": False, "remote_scope": "", "posted": "2026-11-01"}
+    sydney = {**JOB, "id": "s", "title": "Python Dev", "company": "AU", "location": "Sydney",
+              "remote": False, "remote_scope": "", "posted": "2026-11-02"}
+    monkeypatch.setattr(job_feeds, "fetch_remotive", lambda kw: [worldwide])
+    monkeypatch.setattr(job_feeds, "fetch_arbeitnow", lambda kw: [amsterdam, sydney])
+    job_feeds._cache.clear()
+    nl = job_feeds.search("python", "", country="nl")
+    assert [j["company"] for j in nl["jobs"]] == ["NL", "W"]          # local first, then worldwide
+    assert nl["jobs"][1]["fit"] == "remote_worldwide"
+    assert nl["fit_counts"] == {"local": 1, "remote_country": 0, "remote_worldwide": 1}
+    job_feeds._cache.clear()
+    au = job_feeds.search("python", "", country="au")
+    assert [j["company"] for j in au["jobs"]] == ["AU", "W"]
