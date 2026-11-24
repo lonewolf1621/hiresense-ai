@@ -1,5 +1,9 @@
 \# HireSense AI - Smart Resume and Job Matching Platform
 
+> **Live demo:** [hiresense-ai-vishal.streamlit.app](https://hiresense-ai-vishal.streamlit.app) (open the *Try the CV ↔ Job Matcher* tab, no login needed) · **API:** [hiresense-ai-3k4d.onrender.com/docs](https://hiresense-ai-3k4d.onrender.com/docs) · free tier, the first request can take ~1 minute to wake the server.
+>
+> **CV ↔ job matching (`POST /api/match`):** skill extraction + 384-dim `all-MiniLM-L6-v2` sentence embeddings (ONNX Runtime via fastembed) + FAISS retrieval of the best CV line for every job requirement; score = 0.6 × skill coverage + 0.4 × semantic coverage.
+
 
 
 An intelligent job matching platform that helps you find the right jobs, optimize your resume, and track applications across multiple job portals including Indeed, Naukri, and Internshala.

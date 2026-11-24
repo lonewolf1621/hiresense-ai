@@ -140,6 +140,7 @@ def chunk_text(text: str, min_chars: int = 40, max_chars: int = 400) -> List[str
             continue
         pieces.extend(s.strip() for s in re.split(r"(?<=[.!?])\s+", line) if s.strip())
 
+    pieces = list(dict.fromkeys(pieces))
     chunks: List[str] = []
     carry = ""
     for piece in pieces:
@@ -163,6 +164,7 @@ def requirement_lines(jd_text: str, limit: int = 25) -> List[str]:
     for line in re.split(r"\n+", jd_text or ""):
         line = re.sub(r"^[\s\-•*→>]+", "", line).strip()
         lines.extend(s.strip() for s in re.split(r"(?<=[.!?])\s+", line) if s.strip())
+    lines = list(dict.fromkeys(lines))  # drop repeated sentences, keep order
     useful = [l for l in lines if len(l.split()) >= 4]
     return (useful or lines)[:limit]
 
