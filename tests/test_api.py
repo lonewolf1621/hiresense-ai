@@ -68,3 +68,32 @@ def test_match_rejects_tiny_inputs():
 def test_health():
     r = client.get("/health")
     assert r.status_code == 200 and r.json()["status"] == "ok"
+
+
+def test_match_file_txt_and_docx():
+    jd = ("We need a Python engineer with NLP and LLM experience. "
+          "You will deploy services on AWS with Docker and Kubernetes.")
+    cv = ("Machine Learning Engineer. Built a RAG system in Python with FAISS and Sentence Transformers. "
+          "Deployed FastAPI services with Docker on GCP.")
+    r = client.post("/api/match/file", data={"job_description": jd},
+                    files={"file": ("cv.txt", cv.encode(), "text/plain")})
+    assert r.status_code == 200 and "python" in r.json()["matched_skills"]
+
+    import io
+    import docx
+    d = docx.Document()
+    d.add_paragraph(cv)
+    buf = io.BytesIO()
+    d.save(buf)
+    r = client.post("/api/match/file", data={"job_description": jd},
+                    files={"file": ("cv.docx", buf.getvalue(),
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document")})
+    assert r.status_code == 200 and "docker" in r.json()["matched_skills"]
+
+
+def test_match_file_rejects_bad_input():
+    jd = "x" * 60
+    assert client.post("/api/match/file", data={"job_description": jd},
+                       files={"file": ("cv.exe", b"MZ...", "application/octet-stream")}).status_code == 415
+    assert client.post("/api/match/file", data={"job_description": jd},
+                       files={"file": ("cv.txt", b"too short", "text/plain")}).status_code == 422

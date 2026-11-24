@@ -501,6 +501,48 @@ async def match_cv_to_job(req: MatchRequest):
         print(f"[MATCH] ERROR: {e}")
         raise HTTPException(status_code=500, detail="Matching failed")
 
+MAX_CV_BYTES = 5 * 1024 * 1024
+
+
+def extract_cv_text(filename: str, data: bytes) -> str:
+    """Text from a PDF, DOCX or TXT CV."""
+    name = (filename or "").lower()
+    if name.endswith(".pdf"):
+        import io
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            return "\n".join(page.extract_text() or "" for page in pdf.pages)
+    if name.endswith(".docx"):
+        import io
+        import docx
+        return "\n".join(p.text for p in docx.Document(io.BytesIO(data)).paragraphs)
+    if name.endswith(".txt"):
+        return data.decode("utf-8", errors="ignore")
+    raise HTTPException(status_code=415, detail="Upload a PDF, DOCX or TXT file")
+
+
+@app.post("/api/match/file")
+async def match_cv_file_to_job(
+    file: UploadFile = File(..., description="CV as PDF, DOCX or TXT (max 5 MB)"),
+    job_description: str = Form(..., min_length=50, max_length=30000),
+):
+    """Same as /api/match, but takes the CV as an uploaded file."""
+    data = await file.read()
+    if len(data) > MAX_CV_BYTES:
+        raise HTTPException(status_code=413, detail="CV file larger than 5 MB")
+    try:
+        text = extract_cv_text(file.filename, data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[MATCH] Could not read {file.filename}: {e}")
+        raise HTTPException(status_code=422, detail="Could not read text from this file")
+    if len(text.strip()) < 50:
+        raise HTTPException(status_code=422, detail="Too little text found in the CV (is it a scanned image?)")
+    result = await run_in_threadpool(matcher.match, text, job_description)
+    result["cv_characters"] = len(text)
+    return result
+
 # ============= MISC ROUTES =============
 @app.get("/health")
 async def health():
