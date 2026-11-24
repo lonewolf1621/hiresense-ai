@@ -297,6 +297,8 @@ def resumes_page():
 def jobs_page():
     """Job search page"""
     st.title("💼 Find Jobs")
+    st.info("Demo: shows sample listings. Live job feeds are not connected yet. "
+            "Try the 🧠 Match CV page to score your CV against a real job description.")
     
     col1, col2, col3, col4 = st.columns(4)
     

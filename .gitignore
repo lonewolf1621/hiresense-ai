@@ -15,6 +15,7 @@ pip-delete-this-directory.txt
 service-account-key.json
 firebase-config.json
 *.json
+!data/**/*.json
 .env
 .env.local
 .env.*.local

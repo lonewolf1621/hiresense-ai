@@ -1,0 +1,287 @@
+[
+ {
+  "text": "Built REST APIs in FastAPI and deployed them with Docker on AWS.",
+  "skills": [
+   "rest api",
+   "fastapi",
+   "docker",
+   "aws"
+  ]
+ },
+ {
+  "text": "Trained XGBoost and scikit-learn models, tracked experiments in MLflow.",
+  "skills": [
+   "xgboost",
+   "scikit-learn",
+   "mlflow"
+  ]
+ },
+ {
+  "text": "Fine-tuned Hugging Face transformers in PyTorch for NLP tasks.",
+  "skills": [
+   "hugging face",
+   "transformers",
+   "pytorch",
+   "nlp"
+  ]
+ },
+ {
+  "text": "Experience with k8s, Terraform and GitHub Actions for CI/CD.",
+  "skills": [
+   "kubernetes",
+   "terraform",
+   "github actions",
+   "ci/cd"
+  ]
+ },
+ {
+  "text": "Wrote performance-critical code in C++ and services in C#.",
+  "skills": [
+   "c++",
+   "c#"
+  ]
+ },
+ {
+  "text": "Backend in Node.js and TypeScript with a PostgreSQL database.",
+  "skills": [
+   "node.js",
+   "typescript",
+   "postgresql"
+  ]
+ },
+ {
+  "text": "Built retrieval-augmented generation pipelines with LangChain and a vector database.",
+  "skills": [
+   "rag",
+   "langchain",
+   "vector database"
+  ]
+ },
+ {
+  "text": "Analysed data with pandas and NumPy and visualised results.",
+  "skills": [
+   "pandas",
+   "numpy"
+  ]
+ },
+ {
+  "text": "I like to go running and rest on weekends.",
+  "skills": []
+ },
+ {
+  "text": "Please go through the attached document and rest assured we will reply.",
+  "skills": []
+ },
+ {
+  "text": "Strong communication skills and attention to detail.",
+  "skills": []
+ },
+ {
+  "text": "Statistical modelling in R and SQL reporting.",
+  "skills": [
+   "r",
+   "sql"
+  ]
+ },
+ {
+  "text": "Developed microservices in Go (Golang) with Kafka messaging.",
+  "skills": [
+   "golang",
+   "microservices",
+   "kafka"
+  ]
+ },
+ {
+  "text": "Large language models (LLMs) and prompt engineering experience.",
+  "skills": [
+   "llm"
+  ]
+ },
+ {
+  "text": "Deployed models on Google Cloud Platform using BigQuery and Airflow.",
+  "skills": [
+   "gcp",
+   "bigquery",
+   "airflow"
+  ]
+ },
+ {
+  "text": "Computer vision with TensorFlow and deep learning on GPUs.",
+  "skills": [
+   "computer vision",
+   "tensorflow",
+   "deep learning"
+  ]
+ },
+ {
+  "text": "React front end with HTML and CSS, Django REST back end.",
+  "skills": [
+   "react",
+   "html",
+   "css",
+   "django",
+   "rest api"
+  ]
+ },
+ {
+  "text": "Mongo and Redis caching for a Flask application.",
+  "skills": [
+   "mongodb",
+   "redis",
+   "flask"
+  ]
+ },
+ {
+  "text": "Worked in an Agile Scrum team using Jira.",
+  "skills": [
+   "agile",
+   "scrum",
+   "jira"
+  ]
+ },
+ {
+  "text": "Built ETL jobs in Spark on Azure.",
+  "skills": [
+   "spark",
+   "azure"
+  ]
+ },
+ {
+  "text": "Linux administration, Nginx configuration and Git workflows.",
+  "skills": [
+   "linux",
+   "nginx",
+   "git"
+  ]
+ },
+ {
+  "text": "Created embeddings with sentence-transformers and indexed them in FAISS.",
+  "skills": [
+   "embeddings",
+   "faiss"
+  ]
+ },
+ {
+  "text": "Machine learning engineer focused on MLOps.",
+  "skills": [
+   "machine learning",
+   "mlops"
+  ]
+ },
+ {
+  "text": "Java and Kotlin Android development, Swift for iOS.",
+  "skills": [
+   "java",
+   "kotlin",
+   "swift"
+  ]
+ },
+ {
+  "text": "Streamlit dashboards backed by a FastAPI service.",
+  "skills": [
+   "streamlit",
+   "fastapi"
+  ]
+ },
+ {
+  "text": "Natural language processing research using large language models.",
+  "skills": [
+   "nlp",
+   "llm"
+  ]
+ },
+ {
+  "text": "GraphQL API in JavaScript with Elasticsearch search.",
+  "skills": [
+   "graphql",
+   "javascript",
+   "elasticsearch"
+  ]
+ },
+ {
+  "text": "Managed Jenkins pipelines and GitLab repositories.",
+  "skills": [
+   "jenkins",
+   "gitlab"
+  ]
+ },
+ {
+  "text": "Amazon Web Services Lambda functions written in Python.",
+  "skills": [
+   "aws",
+   "python"
+  ]
+ },
+ {
+  "text": "RabbitMQ queues feeding a Rust service.",
+  "skills": [
+   "rabbitmq",
+   "rust"
+  ]
+ },
+ {
+  "text": "Experience with Ansible playbooks and MySQL.",
+  "skills": [
+   "ansible",
+   "mysql"
+  ]
+ },
+ {
+  "text": "Angular and Vue single-page apps.",
+  "skills": [
+   "angular",
+   "vue"
+  ]
+ },
+ {
+  "text": "Snowflake data warehouse and SQL modelling.",
+  "skills": [
+   "snowflake",
+   "sql"
+  ]
+ },
+ {
+  "text": "Responsible for team leadership and stakeholder management.",
+  "skills": []
+ },
+ {
+  "text": "Built a CI CD pipeline with Docker and Kubernetes.",
+  "skills": [
+   "ci/cd",
+   "docker",
+   "kubernetes"
+  ]
+ },
+ {
+  "text": "Used sklearn for classification and Keras-free PyTorch for training.",
+  "skills": [
+   "scikit-learn",
+   "pytorch"
+  ]
+ },
+ {
+  "text": "Node developer with Postgres experience.",
+  "skills": [
+   "node.js",
+   "postgresql"
+  ]
+ },
+ {
+  "text": "Applied ML and DL techniques to medical images.",
+  "skills": [
+   "machine learning",
+   "deep learning"
+  ]
+ },
+ {
+  "text": "Scala and Spark streaming jobs.",
+  "skills": [
+   "scala",
+   "spark"
+  ]
+ },
+ {
+  "text": "Nodes in the graph were restricted; we went to the RESTaurant.",
+  "skills": []
+ }
+]

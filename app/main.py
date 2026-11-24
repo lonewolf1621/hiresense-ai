@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
 import uuid
+import secrets
+import threading
 
 from config.firebase_config import db, storage_bucket
 from app.services.firestore_service import FirestoreService
@@ -16,12 +18,27 @@ from app.services.cloud_storage_service import CloudStorageService
 from app.services import matcher
 
 # ============= CONFIG =============
-SECRET_KEY = os.getenv("SECRET_KEY", "test-secret-key-12345")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    # No hard-coded fallback: tokens are signed with a random per-process key,
+    # so they stop working after a restart. Set SECRET_KEY in production.
+    SECRET_KEY = secrets.token_urlsafe(32)
+    print("[CONFIG] SECRET_KEY not set; using a random key for this process")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 FIREBASE_AVAILABLE = db is not None
 print(f"Firebase Available: {FIREBASE_AVAILABLE}")
+
+# Without Firebase, accounts live in memory (cleared on restart) but passwords
+# are still hashed and checked, so the demo behaves like the real thing.
+_DEMO_USERS: Dict[str, Dict] = {}
+_DEMO_LOCK = threading.Lock()
+
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://hiresense-ai-vishal.streamlit.app,http://localhost:8501,http://127.0.0.1:8501",
+).split(",") if o.strip()]
 
 # Password hashing – bcrypt requires passwords ≤ 72 bytes
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -84,7 +101,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -93,9 +110,9 @@ app.add_middleware(
 # ============= MODELS =============
 class UserRegister(BaseModel):
     email: EmailStr
-    password: str
-    name: str
-    phone: Optional[str] = ""
+    password: str = Field(..., min_length=8, max_length=128)
+    name: str = Field(..., min_length=1, max_length=100)
+    phone: Optional[str] = Field("", max_length=30)
 
 class UserLogin(BaseModel):
     email: str
@@ -124,14 +141,11 @@ class JobSearch(BaseModel):
 
 # ============= DEPENDENCY =============
 async def get_current_user(authorization: Optional[str] = Header(None)):
-    """Get current user from token or return demo user."""
-    if not authorization:
-        return {"user_id": "demo-user-123"}
-    try:
-        token = authorization.split(" ")[1]
-        return verify_token(token)
-    except:
-        return {"user_id": "demo-user-123"}
+    """Require a valid 'Authorization: Bearer <token>' header."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated",
+                            headers={"WWW-Authenticate": "Bearer"})
+    return verify_token(authorization.split(" ", 1)[1].strip())
 
 # ============= AUTH ROUTES =============
 @app.post("/api/auth/register")
@@ -170,7 +184,13 @@ async def register(user: UserRegister):
             })
             print(f"[REGISTER] User created in Firebase")
         else:
-            print(f"[REGISTER] Firebase not available - DEMO MODE")
+            key = user.email.lower()
+            with _DEMO_LOCK:
+                if key in _DEMO_USERS:
+                    raise HTTPException(status_code=400, detail="Email already exists")
+                _DEMO_USERS[key] = {"id": user_id, "name": user.name, "email": user.email,
+                                    "phone": user.phone, "password": hashed}
+            print(f"[REGISTER] Created in-memory demo user")
 
         token = create_access_token({"sub": user_id})
         print(f"[REGISTER] Token created successfully")
@@ -178,6 +198,8 @@ async def register(user: UserRegister):
         return {
             "message": "User registered successfully",
             "user_id": user_id,
+            "name": user.name,
+            "email": user.email,
             "access_token": token,
             "token_type": "bearer"
         }
@@ -213,9 +235,10 @@ async def login(user: UserLogin):
             
             print(f"[LOGIN] Login successful")
         else:
-            print(f"[LOGIN] Firebase not available - DEMO MODE")
-            uid = "demo-user-123"
-            udata = {'name': 'Demo User', 'email': user.email}
+            udata = _DEMO_USERS.get(user.email.lower())
+            if not udata or not safe_verify_password(user.password, udata["password"]):
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+            uid = udata["id"]
 
         token = create_access_token({"sub": uid})
         return {
@@ -242,6 +265,12 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
         uid = current_user['user_id']
         print(f"[PROFILE] Getting profile for {uid}")
         
+        if not FIREBASE_AVAILABLE:
+            demo = next((u for u in _DEMO_USERS.values() if u["id"] == uid), None)
+            if demo:
+                return {"email": demo["email"], "name": demo["name"], "phone": demo["phone"],
+                        "profile": {"experience": 0, "skills": [], "targetRoles": [],
+                                    "targetCities": [], "targetCompanies": []}}
         data = FirestoreService.get_user_profile(uid)
         if not data:
             print(f"[PROFILE] Returning demo profile")

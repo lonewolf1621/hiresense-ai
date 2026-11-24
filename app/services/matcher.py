@@ -109,11 +109,13 @@ def extract_skills(text: str) -> List[str]:
     if not text:
         return []
     lower = text.lower()
+    # "sentence-transformers" is the embeddings library, not the transformers skill
+    core_text = re.sub(r"sentence[- ]transformers", "sentence_embeddings_lib", lower)
     found = set()
     for skill in SKILLS:
         if skill in _CASE_SENSITIVE:
             continue
-        if re.search(_pattern(skill), lower):
+        if re.search(_pattern(skill), core_text):
             found.add(skill)
     for variant, canonical in _ALIASES.items():
         if variant in _CASE_SENSITIVE:
