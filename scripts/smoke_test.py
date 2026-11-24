@@ -94,6 +94,17 @@ def main():
     with_desc = sum(len(j.get("description", "")) > 200 for j in jobs.get("jobs", []))
     print(f"OK   /api/jobs/search: {jobs.get('total')} jobs, {with_desc} with full descriptions, feeds {jobs.get('sources')}")
 
+    for country, city in (("in", ""), ("in", "Bangalore"), ("gb", "")):
+        req = urllib.request.Request(
+            f"{base}/api/jobs/search",
+            data=json.dumps({"keyword": "python", "country": country, "location": city}).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {reg['access_token']}",
+                     "User-Agent": "hiresense-smoke-test"})
+        with urllib.request.urlopen(req, timeout=90) as r:
+            res = json.loads(r.read())
+        sites = [s["name"] for s in res.get("other_sites", [])]
+        print(f"INFO jobs python country={country} city={city or '-'}: {res.get('total')} jobs; links: {', '.join(sites)}")
+
 
 if __name__ == "__main__":
     main()
