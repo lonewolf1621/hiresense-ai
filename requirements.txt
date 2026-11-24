@@ -26,6 +26,10 @@ requests==2.31.0
 beautifulsoup4==4.12.2
 lxml==4.9.3
 
+# CV <-> job matching (MiniLM via ONNX Runtime, no PyTorch; FAISS retrieval)
+fastembed==0.4.2
+faiss-cpu==1.8.0.post1
+
 # Data Processing
 pandas==2.1.3
 numpy==1.26.2

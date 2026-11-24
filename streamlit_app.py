@@ -421,12 +421,113 @@ def applications_page():
     else:
         st.info("No applications yet")
 
+# ============= CV <-> JOB MATCHER =============
+def extract_file_text(uploaded):
+    """Read text from an uploaded PDF, DOCX or TXT file."""
+    name = uploaded.name.lower()
+    try:
+        if name.endswith(".pdf"):
+            import pdfplumber
+            with pdfplumber.open(uploaded) as pdf:
+                return "\n".join(page.extract_text() or "" for page in pdf.pages)
+        if name.endswith(".docx"):
+            import docx
+            return "\n".join(p.text for p in docx.Document(uploaded).paragraphs)
+        return uploaded.read().decode("utf-8", errors="ignore")
+    except Exception as e:
+        st.error(f"Could not read {uploaded.name}: {e}")
+        return ""
+
+
+def match_page():
+    """Score a CV against a job description with the /api/match endpoint."""
+    st.title("🧠 CV ↔ Job Matcher")
+    st.caption(
+        "Skill extraction + 384-dim MiniLM sentence embeddings + FAISS retrieval. "
+        "For each job requirement, the matcher finds the CV line that supports it best."
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Your CV")
+        cv_file = st.file_uploader("Upload CV (PDF, DOCX or TXT)", type=["pdf", "docx", "txt"], key="match_cv_file")
+        cv_default = extract_file_text(cv_file) if cv_file else ""
+        cv_text = st.text_area("…or paste it", value=cv_default, height=300, key=f"match_cv_text_{cv_file.name if cv_file else 'none'}")
+    with col2:
+        st.subheader("Job description")
+        jd_text = st.text_area("Paste the job description", height=380, key="match_jd_text")
+
+    if st.button("🔍 Match", type="primary", use_container_width=True, key="match_btn"):
+        if len(cv_text.strip()) < 50 or len(jd_text.strip()) < 50:
+            st.warning("Please provide at least 50 characters for both the CV and the job description.")
+            return
+        with st.spinner("Matching… (the free server can take up to a minute to wake up)"):
+            try:
+                resp = requests.post(
+                    f"{API_BASE_URL}/match",
+                    json={"resume_text": cv_text, "job_description": jd_text},
+                    timeout=120,
+                )
+            except Exception as e:
+                st.error(f"Could not reach the matching service: {e}")
+                return
+        if resp.status_code != 200:
+            st.error(f"Matching failed ({resp.status_code}): {resp.text[:300]}")
+            return
+        st.session_state.match_result = resp.json()
+
+    result = st.session_state.get("match_result")
+    if not result:
+        return
+
+    st.markdown("---")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Overall match", f"{result['match_score']:.0f}%")
+    m2.metric("Skill coverage", "n/a" if result.get("skill_score") is None else f"{result['skill_score']:.0f}%")
+    m3.metric("Semantic coverage", f"{result['semantic_score']:.0f}%")
+    st.progress(min(1.0, max(0.0, result["match_score"] / 100)))
+
+    s1, s2, s3 = st.columns(3)
+    with s1:
+        st.markdown("**✅ Matched skills**")
+        st.write(", ".join(result["matched_skills"]) or "—")
+    with s2:
+        st.markdown("**❌ Missing skills**")
+        st.write(", ".join(result["missing_skills"]) or "—")
+    with s3:
+        st.markdown("**➕ Extra skills in your CV**")
+        st.write(", ".join(result["extra_skills"]) or "—")
+
+    st.subheader("Evidence: requirement → best supporting CV line")
+    for ev in result.get("evidence", []):
+        with st.container():
+            st.markdown(f"**Requirement:** {ev['requirement']}")
+            if ev.get("cv_evidence"):
+                st.markdown(f"> {ev['cv_evidence']}")
+            else:
+                st.markdown("> _No supporting line found in your CV_")
+            st.caption(f"similarity {ev['similarity']:.2f}")
+
+    st.subheader("Suggestions")
+    for tip in result.get("suggestions", []):
+        st.write(f"• {tip}")
+
+    method = result.get("method")
+    if method == "embeddings":
+        st.caption(f"Method: embeddings ({result.get('model')}) + FAISS · weights {result.get('weights')}")
+    elif method:
+        st.caption("Method: lexical fallback (embedding model not loaded yet). Try again in a minute.")
+
 # ============= MAIN APP =============
 def main():
     """Main app logic"""
     
     if not st.session_state.token:
-        login_page()
+        login_tab, match_tab = st.tabs(["🔐 Login / Register", "🧠 Try the CV ↔ Job Matcher"])
+        with login_tab:
+            login_page()
+        with match_tab:
+            match_page()
     else:
         # Sidebar
         with st.sidebar:
@@ -435,8 +536,8 @@ def main():
             
             selected = option_menu(
                 menu_title="Menu",
-                options=["Dashboard", "Profile", "Resumes", "Find Jobs", "Applications", "Logout"],
-                icons=["speedometer2", "person", "file-earmark", "briefcase", "clipboard", "box-arrow-right"],
+                options=["Dashboard", "Match CV", "Profile", "Resumes", "Find Jobs", "Applications", "Logout"],
+                icons=["speedometer2", "bullseye", "person", "file-earmark", "briefcase", "clipboard", "box-arrow-right"],
                 menu_icon="cast",
                 default_index=0,
             )
@@ -454,6 +555,8 @@ def main():
         # Main content
         if selected == "Dashboard":
             dashboard_page()
+        elif selected == "Match CV":
+            match_page()
         elif selected == "Profile":
             profile_page()
         elif selected == "Resumes":

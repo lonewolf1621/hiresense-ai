@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+from starlette.concurrency import run_in_threadpool
 from typing import Optional, List, Dict
 import uvicorn
 import os
@@ -12,6 +13,7 @@ import uuid
 from config.firebase_config import db, storage_bucket
 from app.services.firestore_service import FirestoreService
 from app.services.cloud_storage_service import CloudStorageService
+from app.services import matcher
 
 # ============= CONFIG =============
 SECRET_KEY = os.getenv("SECRET_KEY", "test-secret-key-12345")
@@ -444,11 +446,41 @@ async def update_application(app_id: str, status: str, current_user: dict = Depe
         print(f"[APP] ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============= MATCHING =============
+class MatchRequest(BaseModel):
+    resume_text: str = Field(..., min_length=50, max_length=30000)
+    job_description: str = Field(..., min_length=50, max_length=30000)
+
+
+@app.on_event("startup")
+async def warm_matcher():
+    """Start loading the embedding model so the first match request is fast."""
+    matcher.warm_up()
+
+
+@app.post("/api/match")
+async def match_cv_to_job(req: MatchRequest):
+    """Score a CV against a job description.
+
+    Returns an overall match score, skill coverage, semantic coverage,
+    matched/missing skills, and for the top requirements the CV line that
+    best supports each one (retrieved with FAISS over MiniLM embeddings).
+    """
+    try:
+        return await run_in_threadpool(matcher.match, req.resume_text, req.job_description)
+    except Exception as e:
+        print(f"[MATCH] ERROR: {e}")
+        raise HTTPException(status_code=500, detail="Matching failed")
+
 # ============= MISC ROUTES =============
 @app.get("/health")
 async def health():
     """Health check endpoint."""
-    return {"status": "ok", "firebase": FIREBASE_AVAILABLE}
+    return {
+        "status": "ok",
+        "firebase": FIREBASE_AVAILABLE,
+        "matcher": matcher.embedder.status,
+    }
 
 @app.get("/")
 async def root():
