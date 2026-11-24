@@ -69,6 +69,15 @@ def main():
     if body.get("method") != "embeddings":
         print("WARN matcher still on the lexical fallback")
 
+    weak = ("Retail store supervisor. Managed rotas, stock counts and customer service "
+            "for a busy high-street branch.")
+    status, ranked, secs = request(f"{base}/api/match/rank", {
+        "job_description": JD, "resumes": [{"name": "weak", "text": weak}, {"name": "strong", "text": CV}]})
+    order = [r["name"] for r in ranked.get("ranking", [])]
+    if status != 200 or order != ["strong", "weak"]:
+        raise SystemExit(f"FAIL /api/match/rank: status={status} order={order}")
+    print(f"OK   /api/match/rank in {secs:.1f}s: {order}")
+
 
 if __name__ == "__main__":
     main()
