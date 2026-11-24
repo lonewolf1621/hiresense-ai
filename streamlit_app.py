@@ -26,27 +26,40 @@ def get_headers():
         return {"Authorization": f"Bearer {st.session_state.token}"}
     return {}
 
+API_TIMEOUT = 90  # the free Render API can take ~1 minute to wake from sleep
+
+
+def wake_api():
+    """Start waking the API in the background as soon as someone opens the app."""
+    if st.session_state.get("api_wake_started"):
+        return
+    st.session_state.api_wake_started = True
+    import threading
+    root = API_BASE_URL[:-4] if API_BASE_URL.endswith("/api") else API_BASE_URL
+    threading.Thread(target=lambda: requests.get(f"{root}/health", timeout=API_TIMEOUT),
+                     daemon=True).start()
+
+
 def api_call(method, endpoint, data=None):
-    """Make API call"""
+    """Call the API; returns (ok, json_or_message)."""
+    url = f"{API_BASE_URL}{endpoint}"
     try:
-        url = f"{API_BASE_URL}{endpoint}"
-        headers = get_headers()
-        
-        if method == "GET":
-            response = requests.get(url, headers=headers, timeout=10)
-        elif method == "POST":
-            response = requests.post(url, json=data, headers=headers, timeout=10)
-        elif method == "PUT":
-            response = requests.put(url, json=data, headers=headers, timeout=10)
-        elif method == "DELETE":
-            response = requests.delete(url, headers=headers, timeout=10)
-        
-        if response.status_code == 200 or response.status_code == 201:
-            return True, response.json()
-        else:
-            return False, response.json() if response.text else "Error occurred"
+        response = requests.request(method, url, json=data, headers=get_headers(), timeout=API_TIMEOUT)
+    except requests.exceptions.Timeout:
+        return False, "The server is still waking up (free hosting sleeps when idle). Please try again in a few seconds."
+    except requests.exceptions.ConnectionError:
+        return False, "Could not reach the server. Please try again in a minute."
     except Exception as e:
         return False, str(e)
+    if response.status_code in (200, 201):
+        return True, response.json()
+    try:
+        detail = response.json().get("detail", response.text)
+    except ValueError:
+        detail = response.text or f"HTTP {response.status_code}"
+    if isinstance(detail, list):  # FastAPI validation errors
+        detail = "; ".join(f"{d.get('loc', [''])[-1]}: {d.get('msg')}" for d in detail)
+    return False, detail
 
 # ============= AUTH PAGES =============
 def login_page():
@@ -66,10 +79,11 @@ def login_page():
             
             if st.button("🔓 Login", use_container_width=True, key="login_btn"):
                 if email and password:
-                    success, response = api_call("POST", "/auth/login", {
-                        "email": email,
-                        "password": password
-                    })
+                    with st.spinner("Logging in… (up to a minute if the server was asleep)"):
+                        success, response = api_call("POST", "/auth/login", {
+                            "email": email,
+                            "password": password
+                        })
                     
                     if success:
                         st.session_state.token = response.get('access_token')
@@ -93,17 +107,20 @@ def login_page():
             
             name = st.text_input("Full Name", placeholder="John Doe")
             reg_email = st.text_input("Email", placeholder="your@email.com", key="reg_email")
-            phone = st.text_input("Phone", placeholder="+91 XXXXXXXXXX")
-            reg_password = st.text_input("Password", type="password", placeholder="Create password", key="reg_password")
+            phone = st.text_input("Phone", placeholder="+44 7XXX XXXXXX")
+            reg_password = st.text_input("Password", type="password", placeholder="At least 8 characters", key="reg_password")
+            st.caption("Demo mode: accounts are kept in memory and reset when the free server restarts. "
+                       "The CV matcher needs no account.")
             
             if st.button("✍️ Register", use_container_width=True, key="register_btn"):
                 if name and reg_email and reg_password:
-                    success, response = api_call("POST", "/auth/register", {
-                        "name": name,
-                        "email": reg_email,
-                        "password": reg_password,
-                        "phone": phone
-                    })
+                    with st.spinner("Creating your account… (up to a minute if the server was asleep)"):
+                        success, response = api_call("POST", "/auth/register", {
+                            "name": name,
+                            "email": reg_email,
+                            "password": reg_password,
+                            "phone": phone
+                        })
                     
                     if success:
                         st.session_state.token = response.get('access_token')
@@ -602,7 +619,8 @@ def rank_section():
 # ============= MAIN APP =============
 def main():
     """Main app logic"""
-    
+    wake_api()
+
     if not st.session_state.token:
         login_tab, match_tab = st.tabs(["🔐 Login / Register", "🧠 Try the CV ↔ Job Matcher"])
         with login_tab:
