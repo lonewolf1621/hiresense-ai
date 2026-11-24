@@ -14,7 +14,7 @@ What is measured (HireSense is unsupervised, so nothing is trained here):
     tuned and the default (0.6/0.4) weights are both reported on TEST
   * throughput: pairs per hour with a cold embedding cache, on this machine
 
-    pip install datasets
+    pip install "datasets>=2.19,<3" "pyarrow==16.1.0"
     python benchmarks/fit_benchmark.py --out benchmarks/results
 """
 from __future__ import annotations
