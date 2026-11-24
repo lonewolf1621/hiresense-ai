@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
+    ignore:
+      # passlib 1.7.4 is incompatible with bcrypt >= 4.1; numpy 2 conflicts with the pinned ML stack.
+      - dependency-name: bcrypt
+        versions: [">=4.1"]
+      - dependency-name: numpy
+        update-types: ["version-update:semver-major"]
     groups:
       python-minor:
         update-types: [minor, patch]
