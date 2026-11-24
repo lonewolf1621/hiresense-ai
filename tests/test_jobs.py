@@ -31,7 +31,7 @@ def test_location_filter():
     assert not job_feeds._matches_location(onsite, "berlin")
     assert job_feeds._matches_location(JOB, "United Kingdom")          # remote, UK allowed
     assert job_feeds._matches_location(JOB, "")                       # anywhere
-    assert not job_feeds._matches_location({**JOB, "remote_scope": "USA only"}, "uk")
+    assert not job_feeds._matches_location({**JOB, "remote_scope": "USA only", "location": "Remote (USA only)"}, "uk")
 
 
 def test_search_survives_a_failing_feed(monkeypatch):
