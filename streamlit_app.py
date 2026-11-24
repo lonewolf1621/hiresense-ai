@@ -362,12 +362,7 @@ def jobs_page():
     fits = result.get("fit_counts", {})
     where = result.get("searched_for", "")
     if where:
-        st.markdown(f"📍 **{fits.get('local', 0)}** based in {where} · 🌍 **{fits.get('remote_country', 0)}** remote, "
-                    f"open to {where} · 🌐 **{fits.get('remote_worldwide', 0)}** remote, open worldwide")
-        if not fits.get("local") and not fits.get("remote_country"):
-            st.info(f"The free feeds have no jobs based in {where} for this search right now, so these are remote "
-                    f"jobs open worldwide (the same list appears for any country). For local listings, use the "
-                    f"site buttons below, or add the Adzuna key.")
+        st.markdown(f"📍 **{fits.get('local', 0)}** in {where} · 🌐 **{fits.get('remote_country', 0) + fits.get('remote_worldwide', 0)}** remote")
     if failed:
         st.caption("Unavailable right now: " + ", ".join(failed))
     other = result.get("other_sites", [])
@@ -380,46 +375,67 @@ def jobs_page():
 
     scores = st.session_state.setdefault("job_scores", {})
     cv_text = st.session_state.get("jobs_cv_text", "")
-    for job in jobs:
-        jid = job["id"]
-        badge = {"local": "📍 ", "remote_country": "🌍 ", "remote_worldwide": "🌐 "}.get(job.get("fit"), "")
-        header = f"{badge}{job['title']} · {job['company']} · {job['location']}"
+    onsite = [j for j in jobs if j.get("fit") == "local" or (j.get("fit") == "any" and not j.get("remote"))]
+    remote = [j for j in jobs if j not in onsite]
+    remote.sort(key=lambda j: 0 if j.get("fit") == "remote_country" else 1)  # open to the country first
+
+    st.subheader(f"📍 Jobs in {where} ({len(onsite)})" if where else f"📍 On-site jobs ({len(onsite)})")
+    if onsite:
+        for job in onsite:
+            render_job(job, scores, cv_text)
+    else:
+        st.caption(f"No on-site jobs{' in ' + where if where else ''} from the built-in feeds for this search. "
+                   "Use the job-site buttons above for local listings.")
+
+    if remote:
+        st.markdown("---")
+        st.subheader(f"🌐 Remote jobs ({len(remote)})")
+        st.caption("Work from anywhere they allow: 🌍 open to your chosen country or region, 🌐 open worldwide.")
+        for job in remote:
+            render_job(job, scores, cv_text)
+
+
+def render_job(job, scores, cv_text):
+    """One job as an expander with actions and its full description."""
+    jid = job["id"]
+    badge = {"local": "📍 ", "remote_country": "🌍 ", "remote_worldwide": "🌐 "}.get(job.get("fit"), "")
+    header = f"{badge}{job['title']} · {job['company']} · {job['location']}"
+    if jid in scores:
+        header = f"[{scores[jid]['match_score']:.0f}% match] " + header
+    with st.expander(header):
+        meta = [f"**Source:** {job['source']}"]
+        if job.get("posted"):
+            meta.append(f"**Posted:** {job['posted']}")
+        if job.get("salary"):
+            meta.append(f"**Salary:** {job['salary']}")
+        st.markdown(" · ".join(meta))
+
+        b1, b2, b3, b4 = st.columns(4)
+        if job.get("url"):
+            b1.link_button("🔗 Apply on site", job["url"], use_container_width=True)
+        score = scores.get(jid, {}).get("match_score")
+        if b2.button("✅ Mark as applied", key=f"applied_{jid}", use_container_width=True):
+            track_job(job, "Applied", score)
+        if b3.button("⭐ Save for later", key=f"save_{jid}", use_container_width=True):
+            track_job(job, "Saved", score)
+        if b4.button("🧠 Match my CV", key=f"match_{jid}", use_container_width=True,
+                     disabled=not cv_text):
+            with st.spinner("Matching…"):
+                ok, m = api_call("POST", "/match", {"resume_text": cv_text,
+                                                    "job_description": job["description"][:30000]})
+            if ok:
+                scores[jid] = m
+                st.rerun()
+            else:
+                st.error(f"Matching failed: {m}")
+
         if jid in scores:
-            header = f"[{scores[jid]['match_score']:.0f}% match] " + header
-        with st.expander(header):
-            meta = [f"**Source:** {job['source']}"]
-            if job.get("posted"):
-                meta.append(f"**Posted:** {job['posted']}")
-            if job.get("salary"):
-                meta.append(f"**Salary:** {job['salary']}")
-            st.markdown(" · ".join(meta))
+            m = scores[jid]
+            st.markdown(f"**Match {m['match_score']:.0f}%** · matched: "
+                        f"{', '.join(m['matched_skills']) or '—'} · missing: {', '.join(m['missing_skills']) or '—'}")
 
-            b1, b2, b3, b4 = st.columns(4)
-            if job.get("url"):
-                b1.link_button("🔗 Apply on site", job["url"], use_container_width=True)
-            score = scores.get(jid, {}).get("match_score")
-            if b2.button("✅ Mark as applied", key=f"applied_{jid}", use_container_width=True):
-                track_job(job, "Applied", score)
-            if b3.button("⭐ Save for later", key=f"save_{jid}", use_container_width=True):
-                track_job(job, "Saved", score)
-            if b4.button("🧠 Match my CV", key=f"match_{jid}", use_container_width=True,
-                         disabled=not cv_text):
-                with st.spinner("Matching…"):
-                    ok, m = api_call("POST", "/match", {"resume_text": cv_text,
-                                                        "job_description": job["description"][:30000]})
-                if ok:
-                    scores[jid] = m
-                    st.rerun()
-                else:
-                    st.error(f"Matching failed: {m}")
-
-            if jid in scores:
-                m = scores[jid]
-                st.markdown(f"**Match {m['match_score']:.0f}%** · matched: "
-                            f"{', '.join(m['matched_skills']) or '—'} · missing: {', '.join(m['missing_skills']) or '—'}")
-
-            st.text_area("Job description", job.get("description") or "No description provided.",
-                         height=320, disabled=True, key=f"jd_{jid}")
+        st.text_area("Job description", job.get("description") or "No description provided.",
+                     height=320, disabled=True, key=f"jd_{jid}")
 
 
 def applications_page():
