@@ -43,3 +43,13 @@ def test_better_cv_scores_higher():
 def test_empty_inputs_do_not_crash():
     assert matcher.match("", JD)["match_score"] == 0
     assert matcher.match(CV, "")["match_score"] == 0
+
+
+def test_job_boilerplate_is_skipped():
+    jd = ("About us: we are a leading provider of innovative solutions in 40 countries.\n"
+          "You will build and deploy ML models in production.\n"
+          "Strong Python and 3+ years of experience with PyTorch is required.\n"
+          "We offer a competitive salary, pension and 25 days holiday.")
+    lines = matcher.requirement_lines(jd)
+    assert any("PyTorch" in l for l in lines) and any("deploy" in l for l in lines)
+    assert not any("About us" in l or "pension" in l for l in lines)
