@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import re
 import threading
-from collections import Counter
+from collections import Counter, OrderedDict
 from math import sqrt
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -178,10 +178,15 @@ def requirement_lines(jd_text: str, limit: int = 25) -> List[str]:
 class _Embedder:
     """Lazily loads the ONNX MiniLM model; thread-safe, loaded once."""
 
+    CACHE_SIZE = 20000
+
     def __init__(self) -> None:
         self._model = None
         self._error: Optional[str] = None
         self._lock = threading.Lock()
+        # text -> normalised vector; CV and JD lines repeat a lot across requests
+        self._cache: "OrderedDict[str, np.ndarray]" = OrderedDict()
+        self._cache_lock = threading.Lock()
 
     def load(self) -> bool:
         if self._model is not None:
@@ -213,10 +218,29 @@ class _Embedder:
         return self._error
 
     def embed(self, texts: List[str]) -> np.ndarray:
-        vecs = np.array(list(self._model.embed(texts)), dtype="float32")
-        norms = np.linalg.norm(vecs, axis=1, keepdims=True)
-        norms[norms == 0] = 1.0
-        return vecs / norms
+        with self._cache_lock:
+            missing = list(dict.fromkeys(t for t in texts if t not in self._cache))
+        if missing:
+            vecs = np.array(list(self._model.embed(missing)), dtype="float32")
+            norms = np.linalg.norm(vecs, axis=1, keepdims=True)
+            norms[norms == 0] = 1.0
+            vecs = vecs / norms
+            with self._cache_lock:
+                for t, v in zip(missing, vecs):
+                    self._cache[t] = v
+                while len(self._cache) > self.CACHE_SIZE:
+                    self._cache.popitem(last=False)
+        with self._cache_lock:
+            out = []
+            for t in texts:
+                v = self._cache.get(t)
+                if v is None:  # evicted between the two locks; embed directly
+                    v = np.array(list(self._model.embed([t]))[0], dtype="float32")
+                    v = v / (np.linalg.norm(v) or 1.0)
+                else:
+                    self._cache.move_to_end(t)
+                out.append(v)
+        return np.stack(out).astype("float32")
 
 
 embedder = _Embedder()
