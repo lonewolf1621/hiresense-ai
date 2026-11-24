@@ -97,3 +97,38 @@ def test_match_file_rejects_bad_input():
                        files={"file": ("cv.exe", b"MZ...", "application/octet-stream")}).status_code == 415
     assert client.post("/api/match/file", data={"job_description": jd},
                        files={"file": ("cv.txt", b"too short", "text/plain")}).status_code == 422
+
+
+JD = ("We need a Python engineer with NLP and LLM experience. "
+      "You will deploy services on AWS with Docker and Kubernetes.")
+STRONG = ("Machine Learning Engineer. Python, NLP and LLM work. Deployed services on AWS "
+          "with Docker and Kubernetes for three years.")
+WEAK = ("Retail store supervisor. Managed rotas, stock counts and customer service for a "
+        "busy high-street branch.")
+
+
+def test_rank_orders_cvs_best_first():
+    r = client.post("/api/match/rank", json={"job_description": JD, "resumes": [
+        {"name": "weak", "text": WEAK}, {"name": "strong", "text": STRONG}]})
+    assert r.status_code == 200, r.text
+    ranking = r.json()["ranking"]
+    assert [x["name"] for x in ranking] == ["strong", "weak"]
+    assert ranking[0]["rank"] == 1 and ranking[0]["match_score"] >= ranking[1]["match_score"]
+
+
+def test_rank_files_skips_unreadable():
+    files = [("files", ("a.txt", STRONG.encode(), "text/plain")),
+             ("files", ("b.txt", WEAK.encode(), "text/plain")),
+             ("files", ("c.exe", b"MZ", "application/octet-stream"))]
+    r = client.post("/api/match/rank/files", data={"job_description": JD}, files=files)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["count"] == 2 and body["ranking"][0]["name"] == "a.txt"
+    assert body["skipped"][0]["name"] == "c.exe"
+
+
+def test_rank_rejects_short_cv_and_too_many():
+    assert client.post("/api/match/rank", json={"job_description": JD,
+                       "resumes": [{"name": "x", "text": "short"}]}).status_code == 422
+    many = [{"name": str(i), "text": STRONG} for i in range(11)]
+    assert client.post("/api/match/rank", json={"job_description": JD, "resumes": many}).status_code == 422

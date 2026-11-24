@@ -1,0 +1,85 @@
+name: uptime
+
+# Live checks of the deployed demo, run by GitHub (no local machine needed).
+# Every 6 hours: smoke-test the Render API and wake/check the Streamlit app.
+# A failure opens (or comments on) an issue labelled "uptime"; the next
+# passing run closes it.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  API_URL: https://hiresense-ai-3k4d.onrender.com
+  APP_URL: https://hiresense-ai-vishal.streamlit.app
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Smoke-test the live API
+        run: python scripts/smoke_test.py "$API_URL"
+
+  streamlit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Playwright
+        run: |
+          pip install playwright==1.48.0
+          python -m playwright install --with-deps chromium
+      - name: Wake and check the Streamlit app
+        run: python scripts/wake_streamlit.py "$APP_URL" "HireSense"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: streamlit-failure
+          path: streamlit_failure.png
+          if-no-files-found: ignore
+
+  report:
+    needs: [api, streamlit]
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      API_RESULT: ${{ needs.api.result }}
+      APP_RESULT: ${{ needs.streamlit.result }}
+    steps:
+      - name: Open or close the uptime issue
+        run: |
+          gh label create uptime --color B60205 --description "Live demo check failed" 2>/dev/null || true
+          open=$(gh issue list --label uptime --state open --json number --jq '.[0].number')
+          if [ "$API_RESULT" = success ] && [ "$APP_RESULT" = success ]; then
+            if [ -n "$open" ]; then
+              gh issue close "$open" --comment "Back up: all live checks passed ($RUN_URL)."
+            fi
+            echo "All live checks passed"
+            exit 0
+          fi
+          body="Live check failed at $(date -u +'%Y-%m-%d %H:%M UTC').
+          - API (Render): $API_RESULT
+          - Streamlit app: $APP_RESULT
+
+          Logs: $RUN_URL"
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "$body"
+          else
+            gh issue create --title "Live demo down" --label uptime --body "$body"
+          fi
+          exit 1

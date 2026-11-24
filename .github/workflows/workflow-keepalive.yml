@@ -1,0 +1,25 @@
+name: workflow-keepalive
+
+# GitHub disables scheduled workflows in a public repo after 60 days with no
+# repository activity. Re-enabling them through the API resets that clock, so
+# the uptime, keep-warm and benchmark schedules keep running on their own.
+on:
+  schedule:
+    - cron: "41 3 1,15 * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Re-enable scheduled workflows
+        run: |
+          for wf in uptime.yml keep-warm.yml benchmark.yml tests.yml workflow-keepalive.yml; do
+            gh api -X PUT "repos/$GH_REPO/actions/workflows/$wf/enable" && echo "enabled $wf"
+          done

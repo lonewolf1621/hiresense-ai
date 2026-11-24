@@ -543,6 +543,84 @@ async def match_cv_file_to_job(
     result["cv_characters"] = len(text)
     return result
 
+
+MAX_RANK_FILES = 10
+
+
+def _rank(cvs: List[Dict[str, str]], job_description: str) -> Dict:
+    """Score every CV against one job and return them best first."""
+    ranked = []
+    for cv in cvs:
+        r = matcher.match(cv["text"], job_description, top_k=3)
+        ranked.append({
+            "name": cv["name"],
+            "match_score": r["match_score"],
+            "skill_score": r["skill_score"],
+            "semantic_score": r["semantic_score"],
+            "matched_skills": r["matched_skills"],
+            "missing_skills": r["missing_skills"],
+            "top_evidence": r["evidence"][:3],
+        })
+    ranked.sort(key=lambda x: x["match_score"], reverse=True)
+    for i, item in enumerate(ranked, 1):
+        item["rank"] = i
+    return {"count": len(ranked), "ranking": ranked, "method": matcher.embedder.status}
+
+
+class RankRequest(BaseModel):
+    job_description: str = Field(..., min_length=50, max_length=30000)
+    resumes: List[Dict[str, str]] = Field(
+        ..., min_length=1, max_length=MAX_RANK_FILES,
+        description='List of {"name": "...", "text": "..."} (1–10 CVs)',
+    )
+
+
+@app.post("/api/match/rank")
+async def rank_cvs(req: RankRequest):
+    """Rank several CVs (as text) against one job description."""
+    cvs = []
+    for i, cv in enumerate(req.resumes, 1):
+        text = (cv.get("text") or "").strip()
+        if len(text) < 50:
+            raise HTTPException(status_code=422, detail=f"CV {i} has fewer than 50 characters")
+        if len(text) > 30000:
+            raise HTTPException(status_code=422, detail=f"CV {i} is longer than 30000 characters")
+        cvs.append({"name": cv.get("name") or f"CV {i}", "text": text})
+    return await run_in_threadpool(_rank, cvs, req.job_description)
+
+
+@app.post("/api/match/rank/files")
+async def rank_cv_files(
+    files: List[UploadFile] = File(..., description="2–10 CVs as PDF, DOCX or TXT (max 5 MB each)"),
+    job_description: str = Form(..., min_length=50, max_length=30000),
+):
+    """Rank several uploaded CVs against one job description, best match first."""
+    if len(files) > MAX_RANK_FILES:
+        raise HTTPException(status_code=422, detail=f"Upload at most {MAX_RANK_FILES} CVs")
+    cvs, skipped = [], []
+    for f in files:
+        data = await f.read()
+        if len(data) > MAX_CV_BYTES:
+            skipped.append({"name": f.filename, "reason": "larger than 5 MB"})
+            continue
+        try:
+            text = extract_cv_text(f.filename, data)
+        except HTTPException as e:
+            skipped.append({"name": f.filename, "reason": e.detail})
+            continue
+        except Exception:
+            skipped.append({"name": f.filename, "reason": "could not read text"})
+            continue
+        if len(text.strip()) < 50:
+            skipped.append({"name": f.filename, "reason": "too little text (scanned image?)"})
+            continue
+        cvs.append({"name": f.filename, "text": text[:30000]})
+    if not cvs:
+        raise HTTPException(status_code=422, detail={"message": "No readable CVs", "skipped": skipped})
+    result = await run_in_threadpool(_rank, cvs, job_description)
+    result["skipped"] = skipped
+    return result
+
 # ============= MISC ROUTES =============
 @app.get("/health")
 async def health():

@@ -1,6 +1,8 @@
 # HireSense AI
 
-Semantic CV ↔ job matching. Paste or upload a CV and a job description; HireSense scores the fit, lists matched and missing skills, and for every requirement in the job shows the line of your CV that best supports it.
+[![tests](https://github.com/lonewolf1621/hiresense-ai/actions/workflows/tests.yml/badge.svg)](https://github.com/lonewolf1621/hiresense-ai/actions/workflows/tests.yml) [![uptime](https://github.com/lonewolf1621/hiresense-ai/actions/workflows/uptime.yml/badge.svg)](https://github.com/lonewolf1621/hiresense-ai/actions/workflows/uptime.yml) [![benchmark](https://github.com/lonewolf1621/hiresense-ai/actions/workflows/benchmark.yml/badge.svg)](https://github.com/lonewolf1621/hiresense-ai/actions/workflows/benchmark.yml)
+
+Semantic CV ↔ job matching. Paste or upload a CV and a job description; HireSense scores the fit, lists matched and missing skills, and for every requirement in the job shows the line of your CV that best supports it. Recruiters can also rank up to 10 CVs against one job and download the results.
 
 **Live demo:** [hiresense-ai-vishal.streamlit.app](https://hiresense-ai-vishal.streamlit.app) (open **🧠 Try the CV ↔ Job Matcher**, no login needed) · **API docs:** [hiresense-ai-3k4d.onrender.com/docs](https://hiresense-ai-3k4d.onrender.com/docs)
 <sub>Free tier: the first request after a quiet period can take ~1 minute while the API wakes up. A match then takes ~4 seconds.</sub>
@@ -35,6 +37,8 @@ flowchart LR
 |---|---|---|---|
 | `POST` | `/api/match` | none | `{resume_text, job_description}` → score, skills, evidence, suggestions |
 | `POST` | `/api/match/file` | none | Same, with the CV uploaded as PDF, DOCX or TXT (multipart `file` + `job_description`) |
+| `POST` | `/api/match/rank` | none | `{job_description, resumes: [{name, text}]}` → up to 10 CVs ranked best first |
+| `POST` | `/api/match/rank/files` | none | Same, with 1–10 uploaded CVs (multipart `files` + `job_description`); unreadable files are listed as skipped |
 | `POST` | `/api/auth/register`, `/api/auth/login` | none | JWT access token (bcrypt-hashed passwords) |
 | `GET/PUT` | `/api/profile` | Bearer | Profile |
 | `POST/GET/DELETE` | `/api/resumes…` | Bearer | CV upload to Cloud Storage, list, delete |
@@ -70,7 +74,7 @@ curl -X POST https://hiresense-ai-3k4d.onrender.com/api/match \
 ### Regression tests
 
 - `python evaluate.py` scores skill extraction on [`data/eval/skill_extraction.json`](data/eval/skill_extraction.json): 40 hand-labelled sentences (90 skill mentions) including traps such as C++/C#, Node.js, "sentence-transformers" vs "transformers", and English uses of *go* and *rest*. All pass; the set was written alongside the extractor, so it is a regression suite that CI enforces (F1 ≥ 0.90), not a benchmark.
-- `pytest -q` covers the matcher (scoring, boilerplate filtering, empty inputs) and the API (register → login → profile, wrong passwords, duplicate emails, token checks, `/api/match`, `/api/match/file`).
+- `pytest -q` covers the matcher (scoring, boilerplate filtering, empty inputs) and the API (register → login → profile, wrong passwords, duplicate emails, token checks, `/api/match`, `/api/match/file`, CV ranking).
 
 ## Security
 
@@ -78,6 +82,21 @@ curl -X POST https://hiresense-ai-3k4d.onrender.com/api/match \
 - Protected routes reject missing or invalid tokens with `401`.
 - CORS limited to the Streamlit app (`ALLOWED_ORIGINS`).
 - Without Firebase credentials the API runs in demo mode: accounts are kept in memory (cleared on restart) but passwords are still checked.
+
+## Running without anyone's laptop
+
+Everything below runs on GitHub Actions and the hosting platforms, so the demo keeps working without a local machine:
+
+| Workflow | When | What it does |
+|---|---|---|
+| [`tests`](.github/workflows/tests.yml) | every push, every PR, weekly | pytest + skill-extraction evaluation (F1 ≥ 0.90) |
+| [`uptime`](.github/workflows/uptime.yml) | every 6 hours | Smoke-tests the live API (health + a real match) and opens the Streamlit app in headless Chromium, waking it if it is asleep. A failure opens a GitHub issue labelled `uptime`; the next passing run closes it. |
+| [`keep-warm`](.github/workflows/keep-warm.yml) | every 10 min, 07:00–20:00 UTC Mon–Fri | Pings `/health` so the API answers without a cold start during UK working hours, within Render's free 750 instance hours a month |
+| [`benchmark`](.github/workflows/benchmark.yml) | weekly, and on matcher changes | Re-runs the public fit benchmark and fails if the semantic AUC drops below 0.55 |
+| [`workflow-keepalive`](.github/workflows/workflow-keepalive.yml) | twice a month | Re-enables the scheduled workflows so GitHub does not pause them after 60 quiet days |
+| [Dependabot](.github/dependabot.yml) | monthly | Dependency and Actions update PRs, each checked by `tests` |
+
+Outside the warm window the free API sleeps after 15 idle minutes and the first request takes about a minute.
 
 ## Run locally
 
@@ -99,7 +118,8 @@ Python 3.11 (pinned in `.python-version`). Optional: Firebase service-account ke
 app/main.py                  FastAPI app: auth, profile, CVs, applications, /api/match
 app/services/matcher.py      Skill extraction, embeddings, FAISS retrieval, scoring
 app/services/*               Firestore / Cloud Storage services, parsers, earlier RAG experiments
-streamlit_app.py             Streamlit front end (matcher page available without login)
+streamlit_app.py             Streamlit front end (matcher and CV ranking available without login)
+scripts/                     Live smoke test and Streamlit wake-up used by the uptime workflow
 data/eval/                   Labelled skill-extraction set and latest results
 tests/                       pytest suite (matcher + API)
 evaluate.py                  Skill-extraction evaluation

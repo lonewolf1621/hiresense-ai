@@ -2,6 +2,8 @@ name: benchmark
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "37 4 * * 0"   # weekly re-run on the public dataset
   push:
     branches: [ main ]
     paths:
@@ -26,3 +28,13 @@ jobs:
         with:
           name: fit-benchmark
           path: benchmarks/results/fit_benchmark.json
+      - name: Regression guard (fail if the semantic AUC drops below the published 0.56)
+        run: |
+          python - <<'PY'
+          import json
+          d = json.load(open("benchmarks/results/fit_benchmark.json"))
+          auc = d["test"]["semantic_coverage_only"]["auc_fit_vs_nofit"]
+          print(f"semantic AUC fit vs no-fit: {auc}")
+          if auc < 0.55:
+              raise SystemExit(f"Regression: semantic AUC {auc} < 0.55")
+          PY

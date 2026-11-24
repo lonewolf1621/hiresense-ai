@@ -1,0 +1,22 @@
+name: keep-warm
+
+# Render's free tier sleeps a service after 15 idle minutes, and a cold start
+# takes about a minute. Pinging /health every 10 minutes during UK working
+# hours (07:00-19:59 UTC, Mon-Fri) keeps the API fast when recruiters are most
+# likely to try it, while using about 290 of the 750 free instance hours a
+# month that Render shares across the workspace (the thyroid API uses the rest).
+on:
+  schedule:
+    - cron: "*/10 7-19 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /health
+        run: curl -fsS --retry 5 --retry-delay 15 --retry-all-errors --max-time 90 https://hiresense-ai-3k4d.onrender.com/health

@@ -449,6 +449,12 @@ def match_page():
         "For each job requirement, the matcher finds the CV line that supports it best."
     )
 
+    mode = st.radio("Mode", ["One CV, detailed report", "Rank several CVs for one job"],
+                    horizontal=True, key="match_mode")
+    if mode.startswith("Rank"):
+        rank_section()
+        return
+
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Your CV")
@@ -514,11 +520,84 @@ def match_page():
     for tip in result.get("suggestions", []):
         st.write(f"• {tip}")
 
+    st.download_button("⬇️ Download report (Markdown)", data=match_report(result),
+                       file_name="hiresense_match_report.md", mime="text/markdown",
+                       key="match_report_dl")
+
     method = result.get("method")
     if method == "embeddings":
         st.caption(f"Method: embeddings ({result.get('model')}) + FAISS · weights {result.get('weights')}")
     elif method:
         st.caption("Method: lexical fallback (embedding model not loaded yet). Try again in a minute.")
+
+def match_report(result):
+    """A Markdown summary of one match result, for download."""
+    lines = [
+        "# HireSense match report", "",
+        f"- Overall match: {result['match_score']:.0f}%",
+        "- Skill coverage: " + ("n/a" if result.get("skill_score") is None else f"{result['skill_score']:.0f}%"),
+        f"- Semantic coverage: {result['semantic_score']:.0f}%", "",
+        "## Skills",
+        f"- Matched: {', '.join(result['matched_skills']) or '—'}",
+        f"- Missing: {', '.join(result['missing_skills']) or '—'}",
+        f"- Extra in CV: {', '.join(result['extra_skills']) or '—'}", "",
+        "## Evidence (requirement → best CV line)",
+    ]
+    for ev in result.get("evidence", []):
+        lines.append(f"- **{ev['requirement']}**")
+        lines.append(f"  - {ev.get('cv_evidence') or 'No supporting line found'} (similarity {ev['similarity']:.2f})")
+    lines += ["", "## Suggestions"] + [f"- {t}" for t in result.get("suggestions", [])]
+    lines += ["", f"_Method: {result.get('method')} · model {result.get('model')}_"]
+    return "\n".join(lines)
+
+
+def rank_section():
+    """Rank up to 10 CVs against one job with /api/match/rank/files."""
+    files = st.file_uploader("Upload 2–10 CVs (PDF, DOCX or TXT)", type=["pdf", "docx", "txt"],
+                             accept_multiple_files=True, key="rank_files")
+    jd_text = st.text_area("Job description", height=250, key="rank_jd_text")
+    if st.button("🏆 Rank CVs", type="primary", use_container_width=True, key="rank_btn"):
+        if not files or len(files) > 10:
+            st.warning("Upload between 1 and 10 CVs.")
+            return
+        if len(jd_text.strip()) < 50:
+            st.warning("The job description needs at least 50 characters.")
+            return
+        payload = [("files", (f.name, f.getvalue(), f.type or "application/octet-stream")) for f in files]
+        with st.spinner("Ranking… (the free server can take up to a minute to wake up)"):
+            try:
+                resp = requests.post(f"{API_BASE_URL}/match/rank/files", data={"job_description": jd_text},
+                                     files=payload, timeout=300)
+            except Exception as e:
+                st.error(f"Could not reach the matching service: {e}")
+                return
+        if resp.status_code != 200:
+            st.error(f"Ranking failed ({resp.status_code}): {resp.text[:300]}")
+            return
+        st.session_state.rank_result = resp.json()
+
+    result = st.session_state.get("rank_result")
+    if not result:
+        return
+    import pandas as pd
+    table = pd.DataFrame([{
+        "Rank": r["rank"], "CV": r["name"], "Match %": round(r["match_score"]),
+        "Skills %": None if r["skill_score"] is None else round(r["skill_score"]),
+        "Semantic %": round(r["semantic_score"]),
+        "Missing skills": ", ".join(r["missing_skills"][:6]),
+    } for r in result["ranking"]])
+    st.dataframe(table, hide_index=True, use_container_width=True)
+    st.download_button("⬇️ Download ranking (CSV)", data=table.to_csv(index=False),
+                       file_name="hiresense_ranking.csv", mime="text/csv", key="rank_dl")
+    for r in result["ranking"]:
+        with st.expander(f"#{r['rank']} {r['name']} — {r['match_score']:.0f}%"):
+            st.write("**Matched:** " + (", ".join(r["matched_skills"]) or "—"))
+            st.write("**Missing:** " + (", ".join(r["missing_skills"]) or "—"))
+            for ev in r.get("top_evidence", []):
+                st.markdown(f"- {ev['requirement']}  \n  > {ev.get('cv_evidence') or '_no supporting line_'}")
+    for s in result.get("skipped", []):
+        st.caption(f"Skipped {s['name']}: {s['reason']}")
+
 
 # ============= MAIN APP =============
 def main():
