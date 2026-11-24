@@ -140,9 +140,9 @@ class JobApplication(BaseModel):
 
 class JobSearch(BaseModel):
     keyword: str = Field(..., min_length=2, max_length=100)
-    location: str = Field("", max_length=100, description='City, country, "Remote", or empty for anywhere')
-    source: Optional[str] = None
-    country: Optional[str] = Field(None, description="Adzuna country code, e.g. gb, us, in")
+    location: Optional[str] = Field("", max_length=100, description='Optional: city or region, "Remote", or empty for anywhere')
+    source: Optional[str] = Field(None, description="Optional: Remotive, Arbeitnow or Adzuna; empty for all")
+    country: Optional[str] = Field(None, description="Optional country code: gb, in, us, ca, ie, de, nl, fr, au, sg")
 
 # ============= DEPENDENCY =============
 async def get_current_user(authorization: Optional[str] = Header(None)):
@@ -375,7 +375,7 @@ APPLICATION_STATUSES = ["Saved", "Applied", "Interview", "Offer", "Rejected"]
 async def job_sources():
     """Which live job feeds are enabled."""
     return {"sources": job_feeds.available_sources(),
-            "adzuna_countries": sorted(set(job_feeds.ADZUNA_COUNTRIES.values()))}
+            "countries": [{"code": c, "name": n} for c, (n, _) in job_feeds.COUNTRIES.items()]}
 
 
 @app.post("/api/jobs/search")

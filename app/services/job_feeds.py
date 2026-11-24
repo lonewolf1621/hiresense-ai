@@ -35,6 +35,9 @@ ADZUNA_COUNTRIES = {
     "uk": "gb", "united kingdom": "gb", "gb": "gb", "england": "gb", "scotland": "gb", "wales": "gb",
     "london": "gb", "manchester": "gb", "birmingham": "gb", "edinburgh": "gb", "glasgow": "gb",
     "leeds": "gb", "bristol": "gb", "cambridge": "gb", "oxford": "gb",
+    "bangalore": "in", "bengaluru": "in", "mumbai": "in", "delhi": "in", "new delhi": "in",
+    "hyderabad": "in", "chennai": "in", "pune": "in", "kolkata": "in", "gurgaon": "in", "gurugram": "in",
+    "noida": "in", "ahmedabad": "in", "visakhapatnam": "in", "vizag": "in",
     "us": "us", "usa": "us", "united states": "us", "india": "in", "germany": "de",
     "france": "fr", "netherlands": "nl", "canada": "ca", "australia": "au", "ireland": "ie",
     "spain": "es", "italy": "it", "poland": "pl", "singapore": "sg", "new zealand": "nz",
@@ -42,8 +45,64 @@ ADZUNA_COUNTRIES = {
     "mexico": "mx",
 }
 
+# Countries offered in the UI: code -> (name, words that mark a remote job as open to it).
+COUNTRIES = {
+    "gb": ("United Kingdom", ["uk", "united kingdom", "europe", "emea"]),
+    "in": ("India", ["india", "asia", "apac"]),
+    "us": ("United States", ["usa", "us", "united states", "americas", "north america"]),
+    "ca": ("Canada", ["canada", "americas", "north america"]),
+    "ie": ("Ireland", ["ireland", "europe", "emea"]),
+    "de": ("Germany", ["germany", "europe", "emea"]),
+    "nl": ("Netherlands", ["netherlands", "europe", "emea"]),
+    "fr": ("France", ["france", "europe", "emea"]),
+    "au": ("Australia", ["australia", "apac"]),
+    "sg": ("Singapore", ["singapore", "asia", "apac"]),
+}
+GLOBAL_WORDS = ("worldwide", "anywhere", "global")
+
+
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
+
+
+def job_site_links(keyword: str, location: str = "", country: Optional[str] = None) -> List[Dict]:
+    """Search links on the job sites people actually use in that country.
+
+    These sites have no public API, so HireSense links to their own search
+    results for the same keyword and location instead of copying listings.
+    """
+    from urllib.parse import quote_plus
+    kw, loc = (keyword or "").strip(), (location or "").strip()
+    k, l, ks, ls = quote_plus(kw), quote_plus(loc), _slug(kw), _slug(loc)
+    cc = (country or "").lower()
+    place = loc or (COUNTRIES[cc][0] if cc in COUNTRIES else "")
+    links = [{"name": "LinkedIn", "url": f"https://www.linkedin.com/jobs/search/?keywords={k}&location={quote_plus(place)}"}]
+    if cc == "in":
+        links += [
+            {"name": "Naukri", "url": f"https://www.naukri.com/{ks}-jobs" + (f"-in-{ls}" if ls else "")},
+            {"name": "Indeed India", "url": f"https://in.indeed.com/jobs?q={k}&l={l}"},
+            {"name": "foundit", "url": f"https://www.foundit.in/srp/results?query={k}" + (f"&locations={l}" if loc else "")},
+            {"name": "Internshala", "url": f"https://internshala.com/jobs/{ks}-jobs" + (f"-in-{ls}" if ls else "") + "/"},
+            {"name": "Shine", "url": f"https://www.shine.com/job-search/{ks}-jobs" + (f"-in-{ls}" if ls else "")},
+        ]
+    elif cc == "gb":
+        links += [
+            {"name": "Indeed UK", "url": f"https://uk.indeed.com/jobs?q={k}&l={l}"},
+            {"name": "Reed", "url": f"https://www.reed.co.uk/jobs/{ks}-jobs" + (f"-in-{ls}" if ls else "")},
+            {"name": "Totaljobs", "url": f"https://www.totaljobs.com/jobs/{ks}" + (f"/in-{ls}" if ls else "")},
+            {"name": "CV-Library", "url": f"https://www.cv-library.co.uk/{ks}-jobs" + (f"-in-{ls}" if ls else "")},
+        ]
+    elif cc == "us" or not cc:
+        links.append({"name": "Indeed", "url": f"https://www.indeed.com/jobs?q={k}&l={l}"})
+    else:
+        links.append({"name": "Indeed", "url": f"https://www.indeed.com/jobs?q={k}&l={quote_plus(place)}"})
+    return links
+
+
 UK_CITIES = {"london", "manchester", "birmingham", "edinburgh", "glasgow", "leeds", "bristol",
              "cambridge", "oxford"}
+INDIA_CITIES = {"bangalore", "bengaluru", "mumbai", "delhi", "new delhi", "hyderabad", "chennai",
+                "pune", "kolkata", "gurgaon", "gurugram", "noida", "ahmedabad", "visakhapatnam", "vizag"}
 
 _cache: Dict[tuple, tuple] = {}
 _cache_lock = threading.Lock()
@@ -80,24 +139,36 @@ def _matches_keyword(job: Dict, keyword: str) -> bool:
     return all(w in haystack for w in words)
 
 
-def _matches_location(job: Dict, location: str) -> bool:
+def _matches_location(job: Dict, location: str, country: Optional[str] = None) -> bool:
+    """Keep a job if it fits the (optional) country and the (optional) city/region."""
     loc = (location or "").strip().lower()
-    if not loc or loc in {"any", "anywhere", "worldwide", "all"}:
-        return True
+    cc = (country or "").lower() or ADZUNA_COUNTRIES.get(loc, "")
+    if loc in {"any", "anywhere", "worldwide", "all"}:
+        loc = ""
     if loc == "remote":
-        return job["remote"]
+        if not job["remote"]:
+            return False
+        loc = ""
     place = (job["location"] + " " + job.get("country", "")).lower()
+    scope = job.get("remote_scope", "").lower()
+
+    if cc and cc in COUNTRIES:
+        name, words = COUNTRIES[cc]
+        places_in_country = [k for k, v in ADZUNA_COUNTRIES.items() if v == cc and len(k) > 2]
+        in_country = (name.lower() in place or job.get("country", "").lower() == cc
+                      or (loc and loc in place) or any(p in place for p in places_in_country))
+        open_remote = job["remote"] and (any(w in scope for w in words) or any(w in scope for w in GLOBAL_WORDS))
+        if not (in_country or open_remote):
+            return False
+        if loc and ADZUNA_COUNTRIES.get(loc) == cc and loc not in UK_CITIES and loc not in INDIA_CITIES:
+            return True          # location just repeats the country
+    if not loc:
+        return True
     if loc in place:
         return True
-    # Remote jobs open to this country/region (e.g. "UK", "Europe", "Worldwide").
-    if job["remote"]:
-        allowed = job.get("remote_scope", "").lower()
-        aliases = {loc}
-        if ADZUNA_COUNTRIES.get(loc) == "gb":
-            aliases |= {"uk", "united kingdom", "europe", "emea"}
-        return any(a in allowed for a in aliases) or any(
-            w in allowed for w in ("worldwide", "anywhere", "global"))
-    return False
+    if job["remote"] and not cc:
+        return loc in scope or any(w in scope for w in GLOBAL_WORDS)
+    return job["remote"] and bool(cc)   # remote job open to the chosen country
 
 
 def fetch_remotive(keyword: str) -> List[Dict]:
@@ -161,7 +232,7 @@ def fetch_adzuna(keyword: str, location: str, country: Optional[str]) -> List[Di
     loc = (location or "").strip().lower()
     cc = (country or ADZUNA_COUNTRIES.get(loc) or "gb").lower()
     # A country name picks the Adzuna country; a city or region is passed as "where".
-    is_country = loc in ADZUNA_COUNTRIES and loc not in UK_CITIES
+    is_country = loc in ADZUNA_COUNTRIES and loc not in UK_CITIES and loc not in INDIA_CITIES
     where = "" if is_country or loc in {"", "remote", "any", "anywhere", "worldwide", "all"} else location
     params = {"app_id": os.getenv("ADZUNA_APP_ID"), "app_key": os.getenv("ADZUNA_APP_KEY"),
               "what": keyword, "results_per_page": 30, "content-type": "application/json"}
@@ -229,7 +300,7 @@ def search(keyword: str, location: str = "", source: Optional[str] = None,
             try:
                 found = fut.result()
                 if name != "adzuna":  # Adzuna already filtered by location server-side
-                    found = [j for j in found if _matches_location(j, location)]
+                    found = [j for j in found if _matches_location(j, location, country)]
                 jobs.extend(found)
                 status[name] = {"ok": True, "count": len(found)}
             except Exception as e:  # one feed failing must not break the search
@@ -241,4 +312,5 @@ def search(keyword: str, location: str = "", source: Optional[str] = None,
         if k not in seen:
             seen.add(k)
             unique.append(j)
-    return {"total": len(unique), "jobs": unique[:limit], "sources": status}
+    return {"total": len(unique), "jobs": unique[:limit], "sources": status,
+            "other_sites": job_site_links(keyword, location, country or ADZUNA_COUNTRIES.get((location or "").strip().lower()))}

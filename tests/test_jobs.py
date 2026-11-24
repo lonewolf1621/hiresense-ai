@@ -75,3 +75,28 @@ def test_applications_are_tracked_updated_and_deleted():
 
     assert client.delete(f"/api/applications/{aid}", headers=h).status_code == 200
     assert client.get("/api/applications", headers=h).json()["applications"] == []
+
+
+def test_country_filter_india_and_uk():
+    blr = {**JOB, "remote": False, "location": "Bangalore", "remote_scope": ""}
+    london = {**JOB, "remote": False, "location": "London", "remote_scope": ""}
+    india_remote = {**JOB, "location": "Remote (India)", "remote_scope": "India"}
+    assert job_feeds._matches_location(blr, "", "in")
+    assert not job_feeds._matches_location(london, "", "in")
+    assert job_feeds._matches_location(london, "", "gb")
+    assert job_feeds._matches_location(india_remote, "bangalore", "in")
+    assert not job_feeds._matches_location(india_remote, "", "gb")
+
+
+def test_job_site_links_per_country():
+    india = {s["name"]: s["url"] for s in job_feeds.job_site_links("data scientist", "Pune", "in")}
+    assert {"LinkedIn", "Naukri", "Indeed India", "foundit", "Internshala", "Shine"} <= set(india)
+    assert india["Naukri"] == "https://www.naukri.com/data-scientist-jobs-in-pune"
+    uk = {s["name"] for s in job_feeds.job_site_links("python", "", "gb")}
+    assert {"LinkedIn", "Indeed UK", "Reed", "Totaljobs", "CV-Library"} <= uk
+    assert {s["name"] for s in job_feeds.job_site_links("python")} == {"LinkedIn", "Indeed"}
+
+
+def test_search_needs_only_a_keyword(monkeypatch):
+    monkeypatch.setattr(job_feeds, "search", lambda *a, **k: {"total": 0, "jobs": [], "sources": {}})
+    assert client.post("/api/jobs/search", json={"keyword": "python"}, headers=_token()).status_code == 200

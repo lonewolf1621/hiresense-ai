@@ -311,19 +311,25 @@ def jobs_page():
     """Live job search with full job descriptions."""
     st.title("💼 Find Jobs")
     st.caption("Live listings from Remotive (remote, worldwide) and Arbeitnow (Europe), plus Adzuna "
-               "(UK, US, India and more) when its API key is configured. Apply on the employer's site, "
-               "then track it here.")
+               "(UK, India, US and more) when its API key is configured, with quick links to LinkedIn, "
+               "Naukri, Indeed, foundit, Internshala, Shine, Reed and others. Only the job title is required.")
 
-    c1, c2, c3 = st.columns([2, 2, 1])
-    keyword = c1.text_input("Job title or skill", placeholder="e.g. machine learning engineer", key="job_kw")
-    location = c2.text_input("Location", value="United Kingdom",
-                             help='A city or country, "Remote", or leave empty for anywhere', key="job_loc")
     if "job_sources" not in st.session_state:
         ok, src = api_call("GET", "/jobs/sources")
         if ok:
             st.session_state.job_sources = src.get("sources", [])
-    sources = ["All"] + st.session_state.get("job_sources", [])
-    source = c3.selectbox("Source", sources, key="job_src")
+            st.session_state.job_countries = src.get("countries", [])
+    countries = st.session_state.get("job_countries", [])
+
+    keyword = st.text_input("Job title or skill", placeholder="e.g. machine learning engineer", key="job_kw")
+    c1, c2, c3 = st.columns(3)
+    country_names = ["Any country"] + [c["name"] for c in countries]
+    country_name = c1.selectbox("Country (optional)", country_names, key="job_country")
+    location = c2.text_input("City / region (optional)", placeholder='e.g. Bangalore, London, or "Remote"',
+                             key="job_loc")
+    source = c3.selectbox("Source (optional)", ["All sources"] + st.session_state.get("job_sources", []),
+                          key="job_src")
+    country = next((c["code"] for c in countries if c["name"] == country_name), None)
 
     with st.expander("📄 Optional: add your CV to score each job against it"):
         cv_file = st.file_uploader("CV (PDF, DOCX or TXT)", type=["pdf", "docx", "txt"], key="jobs_cv")
@@ -338,8 +344,8 @@ def jobs_page():
             return
         with st.spinner("Searching live job boards…"):
             ok, resp = api_call("POST", "/jobs/search", {
-                "keyword": keyword, "location": location,
-                "source": None if source == "All" else source})
+                "keyword": keyword, "location": location.strip(), "country": country,
+                "source": None if source == "All sources" else source})
         if not ok:
             st.error(f"Search failed: {resp}")
             return
@@ -354,6 +360,11 @@ def jobs_page():
     st.success(f"{len(jobs)} jobs found")
     if failed:
         st.caption("Unavailable right now: " + ", ".join(failed))
+    other = result.get("other_sites", [])
+    if other:
+        st.markdown("**Search the same role on other job sites:**")
+        for col, site in zip(st.columns(len(other)), other):
+            col.link_button(site["name"], site["url"], use_container_width=True)
     if not jobs:
         st.info('No matches. Try a broader title, or set Location to "Remote" or leave it empty.')
 

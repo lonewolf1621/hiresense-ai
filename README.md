@@ -40,7 +40,7 @@ flowchart LR
 | `POST` | `/api/match/rank` | none | `{job_description, resumes: [{name, text}]}` → up to 10 CVs ranked best first |
 | `POST` | `/api/match/rank/files` | none | Same, with 1–10 uploaded CVs (multipart `files` + `job_description`); unreadable files are listed as skipped |
 | `POST` | `/api/auth/register`, `/api/auth/login` | none | JWT access token (bcrypt-hashed passwords) |
-| `POST` | `/api/jobs/search` | Bearer | `{keyword, location, source?}` → live jobs with full descriptions and links (Remotive, Arbeitnow, optional Adzuna) |
+| `POST` | `/api/jobs/search` | Bearer | `{keyword, country?, location?, source?}` → live jobs with full descriptions (Remotive, Arbeitnow, optional Adzuna) plus search links for the country's main job sites (India: LinkedIn, Naukri, Indeed, foundit, Internshala, Shine; UK: LinkedIn, Indeed, Reed, Totaljobs, CV-Library) |
 | `GET/POST/PUT/DELETE` | `/api/applications…` | Bearer | Track jobs you applied to or saved; statuses Saved → Applied → Interview → Offer / Rejected |
 | `GET/PUT` | `/api/profile` | Bearer | Profile |
 | `POST/GET/DELETE` | `/api/resumes…` | Bearer | CV upload to Cloud Storage, list, delete |
