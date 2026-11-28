@@ -41,10 +41,24 @@ def wait_for_health(base, deadline_s=300):
     raise SystemExit(f"FAIL /health not ok after {deadline_s}s (last error: {last})")
 
 
+def check_admin_locked(base):
+    """The admin API must never answer without the owner's token."""
+    for path in ("/api/admin/stats", "/api/admin/users"):
+        try:
+            urllib.request.urlopen(urllib.request.Request(base + path, headers={"User-Agent": "smoke"}), timeout=60)
+            raise SystemExit(f"FAIL {path} answered without an admin token")
+        except urllib.error.HTTPError as e:
+            if e.code not in (401, 403):
+                raise SystemExit(f"FAIL {path} returned {e.code} (expected 401/403)")
+    status, body, _ = request(base + "/api/status")
+    print(f"OK   admin API locked; status: {body}")
+
+
 def main():
     base = (sys.argv[1] if len(sys.argv) > 1 else "https://hiresense-ai-3k4d.onrender.com").rstrip("/")
     health, waited = wait_for_health(base)
     print(f"OK   /health after {waited:.0f}s: {health}")
+    check_admin_locked(base)
 
     # The embedding model loads in the background after start-up; give it time.
     for attempt in range(6):
