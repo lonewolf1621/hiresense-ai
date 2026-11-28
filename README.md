@@ -40,6 +40,8 @@ flowchart LR
 | `POST` | `/api/match/rank` | none | `{job_description, resumes: [{name, text}]}` → up to 10 CVs ranked best first |
 | `POST` | `/api/match/rank/files` | none | Same, with 1–10 uploaded CVs (multipart `files` + `job_description`); unreadable files are listed as skipped |
 | `POST` | `/api/auth/register`, `/api/auth/login` | none | JWT access token (bcrypt-hashed passwords) |
+| `GET` | `/api/status` | none | Maintenance banner and which features are switched on |
+| `GET/POST/PUT/DELETE` | `/api/admin/…` | `X-Admin-Token` | Owner admin: stats, users, logs, settings, clear demo data |
 | `POST` | `/api/jobs/search` | Bearer | `{keyword, country?, location?, source?}` → live jobs with full descriptions (Remotive, Arbeitnow, optional Adzuna) plus search links for the country's main job sites (India: LinkedIn, Naukri, Indeed, foundit, Internshala, Shine; UK: LinkedIn, Indeed, Reed, Totaljobs, CV-Library) |
 | `GET/POST/PUT/DELETE` | `/api/applications…` | Bearer | Track jobs you applied to or saved; statuses Saved → Applied → Interview → Offer / Rejected |
 | `GET/PUT` | `/api/profile` | Bearer | Profile |
@@ -84,6 +86,17 @@ curl -X POST https://hiresense-ai-3k4d.onrender.com/api/match \
 - Protected routes reject missing or invalid tokens with `401`.
 - CORS limited to the Streamlit app (`ALLOWED_ORIGINS`).
 - Without Firebase credentials the API runs in demo mode: accounts are kept in memory (cleared on restart) but passwords are still checked.
+
+## Owner admin
+
+An **🛠️ Admin** tab (Streamlit) and `/api/admin/*` endpoints give the owner:
+
+- **Usage:** requests, 5xx errors and p50/p95 latency per endpoint, sign-ups, logins, matcher status, uptime
+- **Users:** list accounts, suspend/unsuspend (blocks login and existing tokens), delete
+- **Logs:** application events (sign-ups, logins, failures, admin actions; never passwords) and recent requests
+- **Maintenance:** a banner shown to every visitor, switches for registration, matching and job search, and *clear demo data*
+
+Access needs `ADMIN_TOKEN` (24+ characters), set only in the hosting dashboard and sent as the `X-Admin-Token` header. Without it admin is disabled; wrong tokens are rate-limited (10 per 15 minutes per client) and logged. Admin data lives in memory and resets when the free server restarts.
 
 ## Running without anyone's laptop
 

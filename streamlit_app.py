@@ -658,17 +658,140 @@ def rank_section():
         st.caption(f"Skipped {s['name']}: {s['reason']}")
 
 
+# ============= ADMIN (owner only) =============
+def admin_call(method, path, **kwargs):
+    headers = {"X-Admin-Token": st.session_state.get("admin_token", "")}
+    try:
+        r = requests.request(method, f"{API_BASE_URL}/admin{path}", headers=headers, timeout=API_TIMEOUT, **kwargs)
+    except requests.exceptions.RequestException as e:
+        return False, f"Could not reach the server: {e}"
+    try:
+        body = r.json()
+    except ValueError:
+        body = {"detail": r.text}
+    return r.ok, body if r.ok else body.get("detail", f"HTTP {r.status_code}")
+
+
+def admin_page():
+    """Owner dashboard: usage, users, logs and maintenance controls."""
+    st.title("🛠️ Admin")
+    if not st.session_state.get("admin_token"):
+        st.caption("Owner only. The token is the ADMIN_TOKEN value set in Render; it is never stored in the repo.")
+        with st.form("admin_login"):
+            token = st.text_input("Admin token", type="password")
+            if st.form_submit_button("Unlock") and token:
+                st.session_state.admin_token = token
+                ok, resp = admin_call("GET", "/stats")
+                if not ok:
+                    st.session_state.admin_token = ""
+                    st.error(resp)
+                else:
+                    st.rerun()
+        return
+
+    c1, c2 = st.columns([4, 1])
+    if c2.button("Lock admin", use_container_width=True):
+        st.session_state.admin_token = ""
+        st.rerun()
+    ok, stats = admin_call("GET", "/stats")
+    if not ok:
+        st.error(stats)
+        return
+    up = stats["uptime_seconds"]
+    m = st.columns(5)
+    m[0].metric("Users", stats["users"]["total"])
+    m[1].metric("Suspended", stats["users"]["suspended"])
+    m[2].metric("Applications", stats["applications"]["total"])
+    m[3].metric("Matcher", stats["matcher"])
+    m[4].metric("Up for", f"{up // 3600}h {up % 3600 // 60}m")
+    c1.caption(f"Storage: {stats['storage']} · job feeds: {', '.join(stats['job_feeds'])}")
+
+    tabs = st.tabs(["📈 Usage", "👥 Users", "📜 Logs", "⚙️ Maintenance"])
+    import pandas as pd
+    with tabs[0]:
+        if stats["endpoints"]:
+            st.dataframe(pd.DataFrame(stats["endpoints"]), hide_index=True, use_container_width=True)
+        else:
+            st.info("No requests recorded since the last restart.")
+        if stats["events"]:
+            st.write("**Events since restart:** " + " · ".join(f"{k}: {v}" for k, v in stats["events"].items()))
+
+    with tabs[1]:
+        ok, users = admin_call("GET", "/users")
+        if not ok:
+            st.info(users)
+        elif not users["users"]:
+            st.info("No accounts yet.")
+        else:
+            st.dataframe(pd.DataFrame(users["users"]), hide_index=True, use_container_width=True)
+            email = st.selectbox("Account", [u["email"] for u in users["users"]], key="adm_user")
+            a, b, c = st.columns(3)
+            if a.button("Suspend", use_container_width=True):
+                st.toast(str(admin_call("POST", f"/users/{email}/suspend")[1])); st.rerun()
+            if b.button("Unsuspend", use_container_width=True):
+                st.toast(str(admin_call("POST", f"/users/{email}/unsuspend")[1])); st.rerun()
+            confirm = c.checkbox("Confirm delete", key="adm_del_ok")
+            if c.button("Delete account", use_container_width=True, disabled=not confirm):
+                st.toast(str(admin_call("DELETE", f"/users/{email}")[1])); st.rerun()
+
+    with tabs[2]:
+        kind = st.radio("Show", ["events", "requests"], horizontal=True, key="adm_kind")
+        ok, logs = admin_call("GET", "/logs", params={"kind": kind, "limit": 200})
+        if ok and logs["items"]:
+            df = pd.DataFrame(logs["items"])
+            df["ts"] = pd.to_datetime(df["ts"], unit="s").dt.strftime("%Y-%m-%d %H:%M:%S")
+            st.dataframe(df, hide_index=True, use_container_width=True)
+        else:
+            st.info("Nothing logged since the last restart." if ok else logs)
+
+    with tabs[3]:
+        ok, cfg = admin_call("GET", "/settings")
+        if ok:
+            with st.form("adm_settings"):
+                banner = st.text_input("Maintenance banner (shown to everyone; empty = none)", cfg["maintenance_banner"])
+                reg = st.toggle("Registration open", cfg["registration_enabled"])
+                mat = st.toggle("CV matching on", cfg["matching_enabled"])
+                job = st.toggle("Job search on", cfg["job_search_enabled"])
+                if st.form_submit_button("Save settings"):
+                    ok2, r = admin_call("PUT", "/settings", json={"maintenance_banner": banner, "registration_enabled": reg,
+                                                                 "matching_enabled": mat, "job_search_enabled": job})
+                    st.success("Saved") if ok2 else st.error(r)
+        st.markdown("---")
+        st.write("**Clear demo data**: removes every demo account and application.")
+        sure = st.text_input("Type DELETE to confirm", key="adm_clear")
+        if st.button("Clear all demo data", disabled=sure != "DELETE"):
+            ok3, r = admin_call("POST", "/clear-demo-data", params={"confirm": "DELETE"})
+            st.success(f"Removed {r['users_removed']} accounts") if ok3 else st.error(r)
+
+
+def show_banner():
+    """Owner-set maintenance banner, checked at most once a minute."""
+    now = time.time()
+    if now - st.session_state.get("status_checked", 0) > 60:
+        try:
+            st.session_state.site_status = requests.get(f"{API_BASE_URL}/status", timeout=5).json()
+        except Exception:
+            st.session_state.site_status = {}
+        st.session_state.status_checked = now
+    banner = (st.session_state.get("site_status") or {}).get("maintenance_banner")
+    if banner:
+        st.warning(f"📢 {banner}")
+
+
 # ============= MAIN APP =============
 def main():
     """Main app logic"""
     wake_api()
+    show_banner()
 
     if not st.session_state.token:
-        login_tab, match_tab = st.tabs(["🔐 Login / Register", "🧠 Try the CV ↔ Job Matcher"])
+        login_tab, match_tab, admin_tab = st.tabs(["🔐 Login / Register", "🧠 Try the CV ↔ Job Matcher", "🛠️ Admin"])
         with login_tab:
             login_page()
         with match_tab:
             match_page()
+        with admin_tab:
+            admin_page()
     else:
         # Sidebar
         with st.sidebar:
@@ -677,8 +800,8 @@ def main():
             
             selected = option_menu(
                 menu_title="Menu",
-                options=["Dashboard", "Match CV", "Profile", "Resumes", "Find Jobs", "Applications", "Logout"],
-                icons=["speedometer2", "bullseye", "person", "file-earmark", "briefcase", "clipboard", "box-arrow-right"],
+                options=["Dashboard", "Match CV", "Profile", "Resumes", "Find Jobs", "Applications", "Admin", "Logout"],
+                icons=["speedometer2", "bullseye", "person", "file-earmark", "briefcase", "clipboard", "tools", "box-arrow-right"],
                 menu_icon="cast",
                 default_index=0,
             )
@@ -706,6 +829,8 @@ def main():
             jobs_page()
         elif selected == "Applications":
             applications_page()
+        elif selected == "Admin":
+            admin_page()
 
 if __name__ == "__main__":
     main()

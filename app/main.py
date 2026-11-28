@@ -16,6 +16,9 @@ from config.firebase_config import db, storage_bucket
 from app.services.firestore_service import FirestoreService
 from app.services.cloud_storage_service import CloudStorageService
 from app.services import matcher, job_feeds
+from app import admin
+import time as _time
+from fastapi import Request
 
 # ============= CONFIG =============
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -107,6 +110,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def _metrics(request: Request, call_next):
+    start = _time.perf_counter()
+    status = 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        route = request.scope.get("route")
+        admin.record_request(request.method, getattr(route, "path", request.url.path), status,
+                             (_time.perf_counter() - start) * 1000)
+
+
+def _demo_user_by_id(uid: str):
+    return next((u for u in _DEMO_USERS.values() if u["id"] == uid), None)
+
+
 # ============= MODELS =============
 class UserRegister(BaseModel):
     email: EmailStr
@@ -150,13 +171,21 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated",
                             headers={"WWW-Authenticate": "Bearer"})
-    return verify_token(authorization.split(" ", 1)[1].strip())
+    payload = verify_token(authorization.split(" ", 1)[1].strip())
+    if not FIREBASE_AVAILABLE:
+        u = _demo_user_by_id(payload.get("user_id"))
+        if not u:
+            raise HTTPException(status_code=401, detail="Account no longer exists")
+        if u.get("locked"):
+            raise HTTPException(status_code=403, detail="Account suspended by the administrator")
+    return payload
 
 # ============= AUTH ROUTES =============
 @app.post("/api/auth/register")
 async def register(user: UserRegister):
     """Register a new user account."""
-    print(f"[REGISTER] Attempt: {user.email}")
+    admin.feature_on("registration_enabled")
+    print("[REGISTER] Attempt")
     try:
         user_id = str(uuid.uuid4())
         print(f"[REGISTER] Generated user_id: {user_id}")
@@ -194,11 +223,13 @@ async def register(user: UserRegister):
                 if key in _DEMO_USERS:
                     raise HTTPException(status_code=400, detail="Email already exists")
                 _DEMO_USERS[key] = {"id": user_id, "name": user.name, "email": user.email,
-                                    "phone": user.phone, "password": hashed}
+                                    "phone": user.phone, "password": hashed,
+                                    "created": datetime.utcnow().isoformat(timespec="seconds"),
+                                    "locked": False, "last_login": None}
             print(f"[REGISTER] Created in-memory demo user")
 
         token = create_access_token({"sub": user_id})
-        print(f"[REGISTER] Token created successfully")
+        admin.log_event("user_registered", email=user.email)
         
         return {
             "message": "User registered successfully",
@@ -220,7 +251,6 @@ async def register(user: UserRegister):
 @app.post("/api/auth/login")
 async def login(user: UserLogin):
     """Login with email and password."""
-    print(f"[LOGIN] Attempt: {user.email}")
     try:
         if FIREBASE_AVAILABLE:
             print(f"[LOGIN] Checking Firebase")
@@ -242,8 +272,14 @@ async def login(user: UserLogin):
         else:
             udata = _DEMO_USERS.get(user.email.lower())
             if not udata or not safe_verify_password(user.password, udata["password"]):
+                admin.log_event("login_failed", email=user.email.lower())
                 raise HTTPException(status_code=401, detail="Invalid credentials")
+            if udata.get("locked"):
+                admin.log_event("login_blocked_suspended", email=udata["email"])
+                raise HTTPException(status_code=403, detail="Account suspended by the administrator")
+            udata["last_login"] = datetime.utcnow().isoformat(timespec="seconds")
             uid = udata["id"]
+            admin.log_event("login_success", email=udata["email"])
 
         token = create_access_token({"sub": uid})
         return {
@@ -381,6 +417,7 @@ async def job_sources():
 @app.post("/api/jobs/search")
 async def search_jobs(search: JobSearch, current_user: dict = Depends(get_current_user)):
     """Search live job feeds; every job includes its full description and original link."""
+    admin.feature_on("job_search_enabled")
     result = await run_in_threadpool(job_feeds.search, search.keyword, search.location,
                                      search.source, search.country)
     for job in result["jobs"]:
@@ -482,6 +519,7 @@ async def match_cv_to_job(req: MatchRequest):
     matched/missing skills, and for the top requirements the CV line that
     best supports each one (retrieved with FAISS over MiniLM embeddings).
     """
+    admin.feature_on("matching_enabled")
     try:
         return await run_in_threadpool(matcher.match, req.resume_text, req.job_description)
     except Exception as e:
@@ -514,6 +552,7 @@ async def match_cv_file_to_job(
     job_description: str = Form(..., min_length=50, max_length=30000),
 ):
     """Same as /api/match, but takes the CV as an uploaded file."""
+    admin.feature_on("matching_enabled")
     data = await file.read()
     if len(data) > MAX_CV_BYTES:
         raise HTTPException(status_code=413, detail="CV file larger than 5 MB")
@@ -565,6 +604,7 @@ class RankRequest(BaseModel):
 @app.post("/api/match/rank")
 async def rank_cvs(req: RankRequest):
     """Rank several CVs (as text) against one job description."""
+    admin.feature_on("matching_enabled")
     cvs = []
     for i, cv in enumerate(req.resumes, 1):
         text = (cv.get("text") or "").strip()
@@ -582,6 +622,7 @@ async def rank_cv_files(
     job_description: str = Form(..., min_length=50, max_length=30000),
 ):
     """Rank several uploaded CVs against one job description, best match first."""
+    admin.feature_on("matching_enabled")
     if len(files) > MAX_RANK_FILES:
         raise HTTPException(status_code=422, detail=f"Upload at most {MAX_RANK_FILES} CVs")
     cvs, skipped = [], []
@@ -607,6 +648,112 @@ async def rank_cv_files(
     result = await run_in_threadpool(_rank, cvs, job_description)
     result["skipped"] = skipped
     return result
+
+# ============= ADMIN (owner only) =============
+class AdminSettings(BaseModel):
+    maintenance_banner: Optional[str] = Field(None, max_length=300)
+    registration_enabled: Optional[bool] = None
+    matching_enabled: Optional[bool] = None
+    job_search_enabled: Optional[bool] = None
+
+
+@app.get("/api/status")
+async def public_status():
+    """Public: maintenance banner and which features are on (used by the front end)."""
+    return {k: v for k, v in admin.settings.items()}
+
+
+@app.get("/api/admin/stats", dependencies=[Depends(admin.require_admin)])
+async def admin_stats():
+    users = list(_DEMO_USERS.values())
+    apps = [a for per_user in _DEMO_APPS.values() for a in per_user.values()]
+    by_status: Dict[str, int] = {}
+    for a in apps:
+        by_status[a.get("status", "?")] = by_status.get(a.get("status", "?"), 0) + 1
+    return {
+        "uptime_seconds": admin.uptime_seconds(),
+        "storage": "firebase" if FIREBASE_AVAILABLE else "in-memory (resets on restart)",
+        "matcher": matcher.embedder.status,
+        "users": {"total": len(users), "suspended": sum(bool(u.get("locked")) for u in users)},
+        "applications": {"total": len(apps), "by_status": by_status},
+        "events": admin.event_counts(),
+        "endpoints": admin.endpoint_stats(),
+        "job_feeds": job_feeds.available_sources(),
+    }
+
+
+@app.get("/api/admin/users", dependencies=[Depends(admin.require_admin)])
+async def admin_users():
+    if FIREBASE_AVAILABLE:
+        raise HTTPException(status_code=501, detail="User management for Firebase is done in the Firebase console")
+    return {"users": [{"email": u["email"], "name": u["name"], "created": u.get("created"),
+                       "last_login": u.get("last_login"), "suspended": bool(u.get("locked")),
+                       "applications": len(_DEMO_APPS.get(u["id"], {}))} for u in _DEMO_USERS.values()]}
+
+
+def _admin_find(email: str) -> Dict:
+    u = _DEMO_USERS.get(email.lower())
+    if not u:
+        raise HTTPException(status_code=404, detail="User not found")
+    return u
+
+
+@app.post("/api/admin/users/{email}/suspend", dependencies=[Depends(admin.require_admin)])
+async def admin_suspend(email: str):
+    _admin_find(email)["locked"] = True
+    admin.log_event("admin_suspended_user", email=email.lower())
+    return {"ok": True}
+
+
+@app.post("/api/admin/users/{email}/unsuspend", dependencies=[Depends(admin.require_admin)])
+async def admin_unsuspend(email: str):
+    _admin_find(email)["locked"] = False
+    admin.log_event("admin_unsuspended_user", email=email.lower())
+    return {"ok": True}
+
+
+@app.delete("/api/admin/users/{email}", dependencies=[Depends(admin.require_admin)])
+async def admin_delete_user(email: str):
+    u = _admin_find(email)
+    with _DEMO_LOCK:
+        _DEMO_USERS.pop(email.lower(), None)
+        _DEMO_APPS.pop(u["id"], None)
+    admin.log_event("admin_deleted_user", email=email.lower())
+    return {"ok": True}
+
+
+@app.get("/api/admin/logs", dependencies=[Depends(admin.require_admin)])
+async def admin_logs(kind: str = "events", limit: int = 100):
+    if kind not in ("events", "requests"):
+        raise HTTPException(status_code=422, detail="kind must be 'events' or 'requests'")
+    return {"kind": kind, "items": admin.recent(min(max(limit, 1), 300), kind)}
+
+
+@app.get("/api/admin/settings", dependencies=[Depends(admin.require_admin)])
+async def admin_get_settings():
+    return admin.settings
+
+
+@app.put("/api/admin/settings", dependencies=[Depends(admin.require_admin)])
+async def admin_put_settings(body: AdminSettings):
+    changes = {k: v for k, v in body.model_dump().items() if v is not None}
+    admin.settings.update(changes)
+    admin.log_event("admin_changed_settings", **{k: str(v) for k, v in changes.items()})
+    return admin.settings
+
+
+@app.post("/api/admin/clear-demo-data", dependencies=[Depends(admin.require_admin)])
+async def admin_clear(confirm: str = ""):
+    if confirm != "DELETE":
+        raise HTTPException(status_code=422, detail="Pass ?confirm=DELETE to remove all demo users and applications")
+    with _DEMO_LOCK:
+        n = len(_DEMO_USERS)
+        _DEMO_USERS.clear()
+        _DEMO_APPS.clear()
+    admin.reset_metrics()
+    admin.log_event("admin_cleared_demo_data", users_removed=n)
+    return {"ok": True, "users_removed": n}
+
 
 # ============= MISC ROUTES =============
 @app.get("/health")
